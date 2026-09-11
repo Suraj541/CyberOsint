@@ -8,7 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.schemas.ingestion import IngestionResponse
 from app.schemas.source import SourceCreate, SourceResponse, SourceUpdate
+from app.services.ingestion import ingestion_pipeline
 from app.services.source_registry import source_registry_service
 from connectors.base import ConnectorHealth
 
@@ -143,3 +145,28 @@ def check_source_connectivity(
 ) -> ConnectorHealth:
     """Execute live health check on the external source endpoint."""
     return source_registry_service.check_source_health(db, source_id)
+
+
+@router.post(
+    "/{source_id}/ingest",
+    response_model=IngestionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Trigger Source Ingestion Pipeline",
+)
+def trigger_source_ingestion(
+    source_id: int,
+    db: Session = Depends(get_db),
+) -> IngestionResponse:
+    """
+    Execute the end-to-end ingestion pipeline for a registered source:
+    Connector -> Discovery -> Validation -> Normalization -> Deduplication -> Database Storage.
+    Returns complete run telemetry metrics.
+    """
+    source = source_registry_service.get_source(db, source_id)
+    if not source:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Source with id {source_id} not found",
+        )
+    metrics = ingestion_pipeline.ingest_source(db, source)
+    return IngestionResponse(**metrics.to_dict())
