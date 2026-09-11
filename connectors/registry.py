@@ -20,6 +20,14 @@ class ConnectorRegistry:
             raise TypeError(f"Connector class {connector_cls} must inherit from BaseConnector")
         self._registry[key] = connector_cls
 
+    def unregister(self, source_type: str) -> bool:
+        """Remove a connector implementation class for a given source type."""
+        key = source_type.lower().strip()
+        if key in self._registry:
+            del self._registry[key]
+            return True
+        return False
+
     def get(self, source_type: str) -> Optional[Type[BaseConnector]]:
         """Retrieve the connector class for a source type, or None if not registered."""
         key = source_type.lower().strip()

@@ -30,7 +30,19 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("Database schema check deferred: %s", exc)
 
+    # Start periodic background scheduler if configured
+    if settings.ENABLE_SCHEDULER:
+        from app.workers.scheduler import scheduler
+        scheduler.start()
+        logger.info("Background periodic scheduler started.")
+
     yield
+
+    # Cleanly stop scheduler on application shutdown
+    from app.workers.scheduler import scheduler
+    if scheduler.is_running:
+        scheduler.stop()
+        logger.info("Background periodic scheduler stopped.")
 
     logger.info("Shutting down %s...", settings.PROJECT_NAME)
 

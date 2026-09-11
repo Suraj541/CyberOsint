@@ -78,6 +78,11 @@ class Settings(BaseSettings):
     ALLOW_PRIVATE_SUBNETS: bool = False
     MAX_REDIRECTS: int = 3
 
+    # Scheduler Settings
+    ENABLE_SCHEDULER: bool = Field(default=False, description="Enable periodic background scheduler")
+    SCHEDULER_RSS_INTERVAL_MINUTES: int = Field(default=30, description="Periodic RSS ingestion interval in minutes")
+    SCHEDULER_CHECK_INTERVAL_SECONDS: float = Field(default=5.0, description="Scheduler loop resolution in seconds")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
