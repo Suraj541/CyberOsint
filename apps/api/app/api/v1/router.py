@@ -4,7 +4,19 @@ Aggregates all endpoint routers under /api/v1.
 """
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import cache, classifier, content, entities, extractor, health, queue, scheduler, sources, taxonomy
+from app.api.v1.endpoints import (
+    cache,
+    classifier,
+    content,
+    deduplication,
+    entities,
+    extractor,
+    health,
+    queue,
+    scheduler,
+    sources,
+    taxonomy,
+)
 
 api_router = APIRouter()
 
@@ -28,6 +40,9 @@ api_router.include_router(classifier.router)
 
 # Deterministic Entity Extraction endpoints
 api_router.include_router(extractor.router)
+
+# Advanced Deduplication Engine & Cluster endpoints
+api_router.include_router(deduplication.router)
 
 # Background scheduler endpoints
 api_router.include_router(scheduler.router)

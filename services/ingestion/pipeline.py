@@ -21,6 +21,7 @@ from connectors.base import BaseConnector, NormalizedItem
 from connectors.registry import connector_registry
 from packages.classifier import rule_classifier
 from packages.extractor import entity_extractor
+from services.deduplication import deduplication_engine, normalize_url
 from services.ingestion.deduplication import Deduplicator, compute_content_hash
 from services.ingestion.metrics import IngestionMetrics
 from services.ingestion.validation import ItemValidator
@@ -122,19 +123,46 @@ class IngestionPipeline:
                 continue
             metrics.normalized_count += 1
 
-            # Step 4: Deduplication (SHA-256 Content Hash)
+            # Step 4: Deduplication (Multi-Stage Deduplication Pipeline per Section 17)
             content_hash = compute_content_hash(
                 url=normalized.url,
                 title=normalized.title,
                 raw_content=normalized.raw_content,
             )
 
-            if self.deduplicator.is_duplicate(db, content_hash, in_memory_seen):
+            dup_result = deduplication_engine.evaluate(
+                db=db,
+                item=normalized,
+                in_memory_seen=in_memory_seen,
+            )
+
+            if dup_result.is_duplicate:
+                # Store duplicate relationship instead of silently deleting records
+                if dup_result.canonical_id:
+                    try:
+                        deduplication_engine.record_duplicate_link(
+                            db=db,
+                            canonical_id=dup_result.canonical_id,
+                            duplicate_id=None,
+                            match_type=dup_result.match_type or "exact_hash",
+                            similarity_score=dup_result.similarity_score,
+                            cluster_id=dup_result.cluster_id,
+                            metrics=dup_result.metrics,
+                        )
+                        db.commit()
+                    except Exception as dup_err:
+                        db.rollback()
+                        logger.warning("Failed to record duplicate link: %s", dup_err)
+
                 metrics.record_duplicate(content_hash, normalized.title)
                 continue
 
-            # Register hash in batch cache immediately
+            # Register hash and normalized URL in batch cache immediately
             self.deduplicator.register_seen(content_hash, in_memory_seen)
+            if normalized.url:
+                clean_u = normalize_url(normalized.url)
+                if clean_u:
+                    in_memory_seen.add(clean_u)
 
             # Step 5: Database Storage
             try:

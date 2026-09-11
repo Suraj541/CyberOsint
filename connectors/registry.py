@@ -13,12 +13,22 @@ class ConnectorRegistry:
     def __init__(self):
         self._registry: Dict[str, Type[BaseConnector]] = {}
 
-    def register(self, source_type: str, connector_cls: Type[BaseConnector]) -> None:
+    def register(self, source_type: str, connector_cls: Optional[Type[BaseConnector]] = None):
         """Register a new connector implementation class for a given source type."""
         key = source_type.lower().strip()
-        if not issubclass(connector_cls, BaseConnector):
-            raise TypeError(f"Connector class {connector_cls} must inherit from BaseConnector")
-        self._registry[key] = connector_cls
+        if connector_cls is not None:
+            if not issubclass(connector_cls, BaseConnector):
+                raise TypeError(f"Connector class {connector_cls} must inherit from BaseConnector")
+            self._registry[key] = connector_cls
+            return connector_cls
+
+        def decorator(cls_: Type[BaseConnector]) -> Type[BaseConnector]:
+            if not issubclass(cls_, BaseConnector):
+                raise TypeError(f"Connector class {cls_} must inherit from BaseConnector")
+            self._registry[key] = cls_
+            return cls_
+
+        return decorator
 
     def unregister(self, source_type: str) -> bool:
         """Remove a connector implementation class for a given source type."""

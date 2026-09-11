@@ -9,6 +9,7 @@ from app.models.source import Source
 from app.models.content import Content
 from app.models.entity import Entity, ContentEntity
 from app.models.tag import Tag, ContentTag
+from app.models.duplicate import DuplicateLink
 
 __all__ = [
     "Base",
@@ -21,4 +22,5 @@ __all__ = [
     "ContentEntity",
     "Tag",
     "ContentTag",
+    "DuplicateLink",
 ]

@@ -5,8 +5,10 @@ Reference implementation of BaseConnector used for integration testing and contr
 
 from typing import Any, Dict, List, Optional
 from connectors.base import BaseConnector, ConnectorHealth, NormalizedItem
+from connectors.registry import connector_registry
 
 
+@connector_registry.register("mock")
 class MockSecurityConnector(BaseConnector):
     """Reference implementation of BaseConnector used for test harnesses."""
 
