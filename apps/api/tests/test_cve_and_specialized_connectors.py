@@ -8,7 +8,17 @@ Conforms strictly to IMPLEMENT.md Section 12 & Section 13.
 
 from datetime import datetime, timezone
 import json
+from pathlib import Path
+import sys
 import unittest
+
+api_root = Path(__file__).resolve().parent.parent
+repo_root = api_root.parent.parent
+if str(api_root) not in sys.path:
+    sys.path.insert(0, str(api_root))
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

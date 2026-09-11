@@ -20,6 +20,7 @@ from app.models.tag import ContentTag, Tag
 from connectors.base import BaseConnector, NormalizedItem
 from connectors.registry import connector_registry
 from packages.classifier import rule_classifier
+from packages.extractor import entity_extractor
 from services.ingestion.deduplication import Deduplicator, compute_content_hash
 from services.ingestion.metrics import IngestionMetrics
 from services.ingestion.validation import ItemValidator
@@ -269,96 +270,63 @@ class IngestionPipeline:
         normalized: NormalizedItem,
     ) -> None:
         """
-        Extract and link cybersecurity entities (CVEs, products, CWEs, advisories)
-        into Entity and ContentEntity tables.
-        Supports both structured entities from connector metadata and automated regex extraction.
+        Extract and link cybersecurity entities (CVE, CWE, Vendor, Product, Malware,
+        Threat Actor, Technology, Domain, IP, Hash, ATT&CK Technique)
+        into Entity and ContentEntity tables using the Deterministic Entity Extraction Engine.
         """
         seen_entity_ids: Set[int] = set()
 
-        # 1. Structured entities from connector metadata
-        structured_entities = normalized.metadata.get("entities") or []
-        if isinstance(structured_entities, list):
-            for ent_dict in structured_entities:
-                if not isinstance(ent_dict, dict):
-                    continue
-                raw_name = ent_dict.get("name")
-                raw_type = str(ent_dict.get("type", "generic")).lower().strip()
-                if not raw_name or not isinstance(raw_name, str):
-                    continue
+        extracted_entities = entity_extractor.extract_from_content(
+            title=content.title,
+            description=content.description,
+            body=content.raw_content,
+            metadata=normalized.metadata,
+        )
 
-                clean_name = raw_name.strip()[:255]
-                normalized_name = clean_name.upper() if raw_type == "cve" else clean_name.lower()
-                description = ent_dict.get("description")
-                metadata_dict = ent_dict.get("metadata") or {}
-                meta_json = json.dumps(metadata_dict, default=str) if metadata_dict else None
+        for ent in extracted_entities:
+            clean_name = ent.name.strip()[:255]
+            if not clean_name:
+                continue
 
-                # Find or create Entity
-                entity_obj = (
-                    db.query(Entity)
-                    .filter(
-                        Entity.entity_type == raw_type,
-                        Entity.normalized_name == normalized_name,
-                    )
-                    .first()
-                )
-                if not entity_obj:
-                    entity_obj = Entity(
-                        name=clean_name,
-                        entity_type=raw_type,
-                        normalized_name=normalized_name,
-                        description=description,
-                        metadata_json=meta_json,
-                    )
-                    db.add(entity_obj)
-                    db.flush()
-                else:
-                    if meta_json and not entity_obj.metadata_json:
-                        entity_obj.metadata_json = meta_json
-                        db.flush()
-
-                if entity_obj.id not in seen_entity_ids:
-                    seen_entity_ids.add(entity_obj.id)
-                    content_entity = ContentEntity(
-                        content_id=content.id,
-                        entity_id=entity_obj.id,
-                        confidence=1.0,
-                        extraction_method="structured",
-                        context_snippet=clean_name,
-                    )
-                    db.add(content_entity)
-
-        # 2. Automated Regex Extraction for CVEs in free text (title + description)
-        search_corpus = f"{content.title} {content.description or ''}"
-        cve_matches = re.findall(r"\b(CVE-\d{4}-\d{4,7})\b", search_corpus, re.IGNORECASE)
-        for cve_str in cve_matches:
-            cve_id = cve_str.upper().strip()
+            # Find or create Entity
             entity_obj = (
                 db.query(Entity)
                 .filter(
-                    Entity.entity_type == "cve",
-                    Entity.normalized_name == cve_id,
+                    Entity.entity_type == ent.entity_type,
+                    Entity.normalized_name == ent.normalized_name,
                 )
                 .first()
             )
+            meta_json = json.dumps(ent.metadata, default=str) if ent.metadata else None
+
             if not entity_obj:
+                description = (
+                    ent.metadata.get("description")
+                    if (ent.metadata and ent.metadata.get("description"))
+                    else f"Extracted {ent.entity_type}: {clean_name}"
+                )
                 entity_obj = Entity(
-                    name=cve_id,
-                    entity_type="cve",
-                    normalized_name=cve_id,
-                    description=f"Automated extraction for {cve_id}",
-                    metadata_json=json.dumps({"extracted_via": "regex"}, default=str),
+                    name=clean_name,
+                    entity_type=ent.entity_type,
+                    normalized_name=ent.normalized_name,
+                    description=description,
+                    metadata_json=meta_json,
                 )
                 db.add(entity_obj)
                 db.flush()
+            else:
+                if meta_json and not entity_obj.metadata_json:
+                    entity_obj.metadata_json = meta_json
+                    db.flush()
 
             if entity_obj.id not in seen_entity_ids:
                 seen_entity_ids.add(entity_obj.id)
                 content_entity = ContentEntity(
                     content_id=content.id,
                     entity_id=entity_obj.id,
-                    confidence=0.9,
-                    extraction_method="regex",
-                    context_snippet=f"Mentioned in '{content.title[:100]}'",
+                    confidence=ent.confidence,
+                    extraction_method=ent.extraction_method,
+                    context_snippet=ent.context_snippet or clean_name,
                 )
                 db.add(content_entity)
 
