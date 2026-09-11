@@ -15,6 +15,7 @@ from app.api.v1.endpoints import (
     queue,
     scheduler,
     search,
+    semantic,
     sources,
     taxonomy,
 )
@@ -47,6 +48,9 @@ api_router.include_router(deduplication.router)
 
 # OpenSearch Full-Text and Faceted Search endpoints
 api_router.include_router(search.router)
+
+# Semantic & Hybrid Vector Search endpoints
+api_router.include_router(semantic.router)
 
 # Background scheduler endpoints
 api_router.include_router(scheduler.router)

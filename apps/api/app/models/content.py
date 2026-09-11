@@ -64,6 +64,12 @@ class Content(BaseModel):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    chunks = relationship(
+        "ContentChunk",
+        back_populates="content",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
     __table_args__ = (
         Index("ix_content_published_at_desc", published_at.desc()),

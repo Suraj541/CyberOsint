@@ -26,6 +26,7 @@ from services.ingestion.deduplication import Deduplicator, compute_content_hash
 from services.ingestion.metrics import IngestionMetrics
 from services.ingestion.validation import ItemValidator
 from services.search import search_service
+from services.semantic import semantic_service
 
 logger = logging.getLogger("cyber_osint.services.ingestion.pipeline")
 
@@ -272,6 +273,15 @@ class IngestionPipeline:
                     )
                 except Exception as index_exc:
                     logger.warning("Failed to index content id=%s into search engine: %s", content.id, index_exc)
+
+                # Automatic Semantic Embedding & Chunk Indexing (Step 18 / Section 19)
+                try:
+                    semantic_service.index_content(
+                        db=db,
+                        content_id=content.id,
+                    )
+                except Exception as sem_exc:
+                    logger.warning("Failed to generate semantic embeddings for content id=%s: %s", content.id, sem_exc)
 
             except Exception as exc:
                 db.rollback()

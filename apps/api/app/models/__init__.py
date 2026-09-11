@@ -10,6 +10,7 @@ from app.models.content import Content
 from app.models.entity import Entity, ContentEntity
 from app.models.tag import Tag, ContentTag
 from app.models.duplicate import DuplicateLink
+from app.models.chunk import ContentChunk
 
 __all__ = [
     "Base",
@@ -23,4 +24,5 @@ __all__ = [
     "Tag",
     "ContentTag",
     "DuplicateLink",
+    "ContentChunk",
 ]
