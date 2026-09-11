@@ -59,10 +59,25 @@ class ItemValidator:
             # Must have at least one identifier or content attribute
             has_ident = any(
                 raw_item.get(k)
-                for k in ("title", "link", "id", "guid", "url", "description", "summary")
+                for k in (
+                    "title",
+                    "link",
+                    "id",
+                    "guid",
+                    "url",
+                    "description",
+                    "summary",
+                    "cveID",
+                    "cve_id",
+                    "cve",
+                    "ghsa_id",
+                    "alert_id",
+                    "vulnerabilityName",
+                    "shortDescription",
+                )
             )
             if not has_ident:
-                return False, "Raw item lacks identifiable keys (title/link/id/description)"
+                return False, "Raw item lacks identifiable keys (title/link/id/description/cveID/ghsa_id/alert_id)"
             return True, None
 
         # For object instances (e.g., feedparser FeedParserDict or objects)

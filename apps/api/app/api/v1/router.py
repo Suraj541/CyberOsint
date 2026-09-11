@@ -4,7 +4,7 @@ Aggregates all endpoint routers under /api/v1.
 """
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import cache, content, health, queue, scheduler, sources
+from app.api.v1.endpoints import cache, content, entities, health, queue, scheduler, sources
 
 api_router = APIRouter()
 
@@ -16,6 +16,9 @@ api_router.include_router(sources.router)
 
 # Normalized content endpoints
 api_router.include_router(content.router)
+
+# Extracted entities & CVE intelligence
+api_router.include_router(entities.router)
 
 # Background scheduler endpoints
 api_router.include_router(scheduler.router)
