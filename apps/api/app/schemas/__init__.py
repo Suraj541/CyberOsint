@@ -1,8 +1,15 @@
 """Pydantic Request & Response Schemas Package."""
 
+from app.schemas.cache import CacheHealthResponse
 from app.schemas.content import ContentDetailResponse, ContentResponse
 from app.schemas.health import DetailedHealthResponse, HealthResponse
 from app.schemas.ingestion import IngestionItemSummary, IngestionResponse
+from app.schemas.queue import (
+    TaskEnqueueRequest,
+    TaskEnqueueResponse,
+    TaskStatusResponse,
+    WorkerStateResponse,
+)
 from app.schemas.scheduler import JobStateResponse, JobTriggerResponse, SchedulerStatusResponse
 from app.schemas.source import SourceBase, SourceCreate, SourceResponse, SourceUpdate
 
@@ -20,4 +27,9 @@ __all__ = [
     "JobStateResponse",
     "SchedulerStatusResponse",
     "JobTriggerResponse",
+    "CacheHealthResponse",
+    "TaskEnqueueRequest",
+    "TaskEnqueueResponse",
+    "TaskStatusResponse",
+    "WorkerStateResponse",
 ]
