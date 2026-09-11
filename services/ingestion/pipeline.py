@@ -19,6 +19,7 @@ from app.models.source import Source
 from app.models.tag import ContentTag, Tag
 from connectors.base import BaseConnector, NormalizedItem
 from connectors.registry import connector_registry
+from packages.classifier import rule_classifier
 from services.ingestion.deduplication import Deduplicator, compute_content_hash
 from services.ingestion.metrics import IngestionMetrics
 from services.ingestion.validation import ItemValidator
@@ -184,6 +185,44 @@ class IngestionPipeline:
 
                 # Link structured and regex-extracted entities
                 self._link_entities(db, content, normalized)
+
+                # Automatic Cybersecurity Taxonomy Classification
+                classification = rule_classifier.classify(
+                    title=normalized.title,
+                    description=normalized.description,
+                    content_text=normalized.raw_content,
+                    metadata=normalized.metadata,
+                )
+                normalized.metadata["classification"] = classification.to_dict()
+
+                # Link predicted primary domain tag
+                domain_tag = db.query(Tag).filter(Tag.name == classification.category).first()
+                if not domain_tag:
+                    domain_tag = Tag(name=classification.category, category="domain")
+                    db.add(domain_tag)
+                    db.flush()
+
+                ct_domain = ContentTag(
+                    content_id=content.id,
+                    tag_id=domain_tag.id,
+                    confidence=classification.confidence,
+                )
+                db.add(ct_domain)
+
+                # Link predicted subcategory tag if present
+                if classification.subcategory:
+                    subdomain_tag = db.query(Tag).filter(Tag.name == classification.subcategory).first()
+                    if not subdomain_tag:
+                        subdomain_tag = Tag(name=classification.subcategory, category="subdomain")
+                        db.add(subdomain_tag)
+                        db.flush()
+
+                    ct_subdomain = ContentTag(
+                        content_id=content.id,
+                        tag_id=subdomain_tag.id,
+                        confidence=classification.confidence,
+                    )
+                    db.add(ct_subdomain)
 
                 db.commit()
                 metrics.record_ingested(
