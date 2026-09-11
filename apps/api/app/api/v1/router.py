@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     cache,
     classifier,
     content,
+    dashboard,
     deduplication,
     entities,
     extractor,
@@ -30,6 +31,9 @@ api_router.include_router(sources.router)
 
 # Normalized content endpoints
 api_router.include_router(content.router)
+
+# Dashboard intelligence aggregator endpoints (Section 21)
+api_router.include_router(dashboard.router)
 
 # Extracted entities & CVE intelligence
 api_router.include_router(entities.router)

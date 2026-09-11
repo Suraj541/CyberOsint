@@ -4,56 +4,33 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ContentItem,
-  DashboardMetrics,
-  ThreatIntelligenceItem,
-  VulnerabilityItem,
+  DashboardData,
+  TrendingTopic,
 } from "../lib/types";
-import {
-  fetchDashboardMetrics,
-  fetchRecentContent,
-  fetchThreatIntelligence,
-  fetchVulnerabilities,
-} from "../lib/api";
+import { fetchDashboard } from "../lib/api";
 import { StatCard } from "../components/StatCard";
 import { ContentCard } from "../components/ContentCard";
 import { ContentModal } from "../components/ContentModal";
 import { SeverityBadge } from "../components/SeverityBadge";
 
 export default function DashboardPage() {
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [newsItems, setNewsItems] = useState<ContentItem[]>([]);
-  const [researchItems, setResearchItems] = useState<ContentItem[]>([]);
-  const [toolItems, setToolItems] = useState<ContentItem[]>([]);
-  const [videoItems, setVideoItems] = useState<ContentItem[]>([]);
-  const [cveList, setCveList] = useState<VulnerabilityItem[]>([]);
-  const [threatIntel, setThreatIntel] = useState<ThreatIntelligenceItem[]>([]);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [m, allContent, cves, intel] = await Promise.all([
-          fetchDashboardMetrics(),
-          fetchRecentContent(),
-          fetchVulnerabilities(),
-          fetchThreatIntelligence(),
-        ]);
-        setMetrics(m);
-        setCveList(cves.slice(0, 4));
-        setThreatIntel(intel.slice(0, 3));
-
-        // Segment content items into Section 21 Dashboard components
-        setNewsItems(allContent.filter((c) => c.content_type === "article" || c.content_type === "advisory").slice(0, 4));
-        setResearchItems(allContent.filter((c) => c.content_type === "paper").slice(0, 2));
-        setToolItems(allContent.filter((c) => c.content_type === "tool").slice(0, 2));
-        setVideoItems(allContent.filter((c) => c.content_type === "video").slice(0, 2));
+        const d = await fetchDashboard();
+        setData(d);
       } finally {
         setLoading(false);
       }
     }
     loadData();
   }, []);
+
+  const metrics = data?.metrics;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
@@ -62,13 +39,13 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider">
-              OPERATIONAL DASHBOARD
+              OPERATIONAL COMMAND CENTER
             </span>
             <span className="text-slate-600">&bull;</span>
-            <span className="text-xs font-mono text-slate-400">REAL-TIME FEEDS</span>
+            <span className="text-xs font-mono text-emerald-400">REAL DATABASE AGGREGATION</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-            Threat Intelligence Command Center
+            Threat Intelligence Unified Dashboard
           </h1>
         </div>
 
@@ -77,17 +54,17 @@ export default function DashboardPage() {
             href="/search"
             className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs font-mono transition-colors shadow-sm flex items-center gap-1.5"
           >
-            <span>Launch Hybrid Search &rarr;</span>
+            <span>Hybrid Search (RRF) &rarr;</span>
           </Link>
         </div>
       </div>
 
-      {/* Metrics Row */}
+      {/* Section 21: Real Database Aggregate Telemetry */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Aggregated Content"
           value={metrics ? metrics.total_content.toLocaleString() : "..."}
-          change="340 today"
+          change="real-time"
           accentColor="cyan"
           iconText="⚡"
         />
@@ -101,29 +78,68 @@ export default function DashboardPage() {
         <StatCard
           title="Tracked Vulnerabilities (CVE)"
           value={metrics ? metrics.tracked_cves.toLocaleString() : "..."}
-          change="18 KEV active"
+          change="KEV active"
           accentColor="crimson"
           iconText="🛡"
         />
         <StatCard
-          title="Critical Threat Alerts"
-          value={metrics ? metrics.threat_advisories : "..."}
-          change="5 new zero-days"
+          title="Critical Threat Advisories"
+          value={metrics ? metrics.threat_advisories.toLocaleString() : "..."}
+          change="active triage"
           accentColor="amber"
           iconText="⚠"
         />
       </div>
 
-      {/* Main Grid: Section 21 Dashboard Components */}
+      {/* Section 21 Component 4: Trending Topics Strip */}
+      {data && data.trending_topics && data.trending_topics.length > 0 && (
+        <div className="p-4 rounded-xl cyber-card border border-slate-800">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-cyan-400 font-mono text-sm">◈</span>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">
+                Trending Security Entities & Topics
+              </h2>
+            </div>
+            <span className="text-[11px] font-mono text-slate-500">
+              Aggregated from extracted entity frequencies
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {data.trending_topics.map((topic, idx) => (
+              <Link
+                key={idx}
+                href={`/search?q=${encodeURIComponent(topic.name)}`}
+                className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 hover:border-cyan-500/40 text-xs font-mono transition-colors flex items-center gap-2 group"
+              >
+                <span className="text-cyan-300 font-bold group-hover:text-cyan-200">
+                  {topic.name}
+                </span>
+                <span className="text-[10px] text-slate-500 uppercase">
+                  {topic.entity_type}
+                </span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-900 text-emerald-400 border border-emerald-500/20">
+                  {topic.mention_count} mentions
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main Grid: All 7 Section 21 Dashboard Components */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Latest News & Research */}
+        {/* Left 2 Cols: Latest News, Research, Tools, Videos */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Section 21: Latest News */}
+          {/* Section 21 Component 1: Latest News */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span className="text-cyan-400 font-mono text-sm">◈</span>
-                <h2 className="text-lg font-bold text-white tracking-tight">Latest Threat Advisories & News</h2>
+                <h2 className="text-lg font-bold text-white tracking-tight">
+                  Latest Threat Advisories & News
+                </h2>
               </div>
               <Link href="/news" className="text-xs font-mono text-cyan-400 hover:underline">
                 View all news &rarr;
@@ -131,38 +147,65 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {newsItems.map((item) => (
+              {data?.latest_news.slice(0, 4).map((item) => (
                 <ContentCard key={item.id} item={item} onSelect={setSelectedItem} />
               ))}
             </div>
           </div>
 
-          {/* Section 21: New Research & Tooling */}
+          {/* Section 21 Component 3: New Research */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span className="text-violet-400 font-mono text-sm">◈</span>
-                <h2 className="text-lg font-bold text-white tracking-tight">Exploit Research & New Tools</h2>
+                <h2 className="text-lg font-bold text-white tracking-tight">
+                  New Vulnerability & Exploit Research
+                </h2>
               </div>
               <Link href="/research" className="text-xs font-mono text-cyan-400 hover:underline">
-                Explore papers &rarr;
+                View papers &rarr;
               </Link>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {researchItems.concat(toolItems).map((item) => (
+              {data?.new_research.slice(0, 4).map((item) => (
                 <ContentCard key={item.id} item={item} onSelect={setSelectedItem} />
               ))}
             </div>
           </div>
 
-          {/* Section 21: Latest Videos */}
-          {videoItems.length > 0 && (
+          {/* Section 21 Component 5: New Tools */}
+          {data?.new_tools && data.new_tools.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <span className="text-emerald-400 font-mono text-sm">◈</span>
-                  <h2 className="text-lg font-bold text-white tracking-tight">Security Conferences & Video Intel</h2>
+                  <h2 className="text-lg font-bold text-white tracking-tight">
+                    New Security Tools & Frameworks
+                  </h2>
+                </div>
+                <Link href="/tools" className="text-xs font-mono text-cyan-400 hover:underline">
+                  Browse arsenal &rarr;
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {data.new_tools.slice(0, 4).map((item) => (
+                  <ContentCard key={item.id} item={item} onSelect={setSelectedItem} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Section 21 Component 6: Latest Videos */}
+          {data?.latest_videos && data.latest_videos.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-red-400 font-mono text-sm">◈</span>
+                  <h2 className="text-lg font-bold text-white tracking-tight">
+                    Latest Security Talks & Video Intel
+                  </h2>
                 </div>
                 <Link href="/videos" className="text-xs font-mono text-cyan-400 hover:underline">
                   Watch all &rarr;
@@ -170,7 +213,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {videoItems.map((item) => (
+                {data.latest_videos.slice(0, 4).map((item) => (
                   <ContentCard key={item.id} item={item} onSelect={setSelectedItem} />
                 ))}
               </div>
@@ -178,9 +221,9 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Right Col: Critical Vulnerabilities & Threat Actors */}
+        {/* Right Col: Critical Vulnerabilities & Threat Intelligence */}
         <div className="space-y-8">
-          {/* Section 21: Critical Vulnerabilities */}
+          {/* Section 21 Component 2: Critical Vulnerabilities */}
           <div className="cyber-card rounded-xl p-5 border border-slate-800">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
@@ -195,36 +238,35 @@ export default function DashboardPage() {
             </div>
 
             <div className="space-y-3">
-              {cveList.map((cve) => (
+              {data?.critical_vulnerabilities.slice(0, 5).map((cve) => (
                 <div
-                  key={cve.cve_id}
-                  className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 transition-colors"
+                  key={cve.id}
+                  onClick={() => setSelectedItem(cve)}
+                  className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-red-500/40 cursor-pointer transition-colors"
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-mono text-xs font-bold text-cyan-300">{cve.cve_id}</span>
-                    <SeverityBadge severity={cve.severity} score={cve.cvss_score} />
+                    <span className="font-mono text-xs font-bold text-cyan-300">{cve.title}</span>
+                    {cve.severity && <SeverityBadge severity={cve.severity} score={cve.cvss_score} />}
                   </div>
                   <p className="text-xs text-slate-300 line-clamp-2 mb-2 leading-relaxed">
-                    {cve.description}
+                    {cve.summary || cve.description}
                   </p>
                   <div className="flex items-center justify-between text-[11px] font-mono text-slate-500">
-                    <span>{cve.vendor || "Enterprise"}</span>
-                    {cve.is_exploited && (
-                      <span className="text-red-400 font-semibold">CISA KEV EXPLOITED</span>
-                    )}
+                    <span>{cve.source}</span>
+                    <span className="text-cyan-400 hover:underline">Inspect &rarr;</span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Section 21: Threat Intelligence & Actors */}
+          {/* Section 21 Component 7: Threat Intelligence */}
           <div className="cyber-card rounded-xl p-5 border border-slate-800">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <span className="text-amber-400 font-mono text-sm">⚡</span>
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                  Active Threat Actors
+                  Threat Intelligence & APTs
                 </h3>
               </div>
               <Link href="/intelligence" className="text-xs font-mono text-cyan-400 hover:underline">
@@ -233,31 +275,23 @@ export default function DashboardPage() {
             </div>
 
             <div className="space-y-3">
-              {threatIntel.map((actor) => (
+              {data?.threat_intelligence.slice(0, 4).map((intel) => (
                 <div
-                  key={actor.id}
-                  className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 transition-colors"
+                  key={intel.id}
+                  onClick={() => setSelectedItem(intel)}
+                  className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-amber-500/40 cursor-pointer transition-colors"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono text-xs font-bold text-amber-300">
-                      {actor.threat_actor}
-                    </span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-                      {(actor.confidence * 100).toFixed(0)}% Conf.
+                    <span className="font-mono text-xs font-bold text-amber-300 line-clamp-1">
+                      {intel.title}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 line-clamp-2 mb-2">
-                    {actor.summary}
+                    {intel.summary || intel.description}
                   </p>
-                  <div className="flex flex-wrap gap-1">
-                    {actor.mitre_techniques?.slice(0, 2).map((t, idx) => (
-                      <span
-                        key={idx}
-                        className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800"
-                      >
-                        {t}
-                      </span>
-                    ))}
+                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-500">
+                    <span>{intel.source}</span>
+                    <span className="text-amber-400 hover:underline">Inspect &rarr;</span>
                   </div>
                 </div>
               ))}
@@ -266,7 +300,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Content Inspection Modal */}
+      {/* Reusable Content Inspection Modal */}
       <ContentModal item={selectedItem} onClose={() => setSelectedItem(null)} />
     </div>
   );

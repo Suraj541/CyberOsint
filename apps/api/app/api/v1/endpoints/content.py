@@ -113,3 +113,53 @@ def get_content_by_hash(
             detail=f"Content with hash {content_hash} not found",
         )
     return content
+
+
+@router.get(
+    "/{content_id}/related",
+    response_model=List[ContentResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get Related Intelligence Content",
+)
+def get_related_content(
+    content_id: int,
+    limit: int = Query(default=4, ge=1, le=10),
+    db: Session = Depends(get_db),
+) -> List[ContentResponse]:
+    """
+    Retrieve related threat intelligence items matching category or taxonomy classification.
+    Conforms to IMPLEMENT.md Section 22.
+    """
+    target = db.query(Content).filter(Content.id == content_id).first()
+    if not target:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Content with id {content_id} not found",
+        )
+
+    # Find items in same content_type or same source category excluding itself
+    related_query = db.query(Content).filter(Content.id != content_id)
+    if target.source and target.source.category:
+        related_query = related_query.join(Source, Content.source_id == Source.id).filter(Source.category == target.source.category)
+    elif target.content_type:
+        related_query = related_query.filter(Content.content_type == target.content_type)
+
+    related = (
+        related_query.order_by(Content.published_at.desc().nullslast(), Content.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    # If category matching returned fewer than limit, backfill with recent items
+    if len(related) < limit:
+        existing_ids = {r.id for r in related} | {content_id}
+        backfill = (
+            db.query(Content)
+            .filter(~Content.id.in_(existing_ids))
+            .order_by(Content.published_at.desc().nullslast(), Content.created_at.desc())
+            .limit(limit - len(related))
+            .all()
+        )
+        related.extend(backfill)
+
+    return related
