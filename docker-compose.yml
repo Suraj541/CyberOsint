@@ -41,12 +41,30 @@ services:
     networks:
       - cyber_osint_network
 
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: cyber-osint-opensearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - plugins.security.disabled=true
+    ports:
+      - "${OPENSEARCH_PORT:-9200}:9200"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - cyber_osint_network
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
+  opensearch_data:
+    driver: local
 
 networks:
   cyber_osint_network:
     driver: bridge
+

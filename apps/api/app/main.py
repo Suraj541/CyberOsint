@@ -107,3 +107,8 @@ def root():
 
 # Mount API Version 1 Routers
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Top-level /api/search alias conforming to IMPLEMENT.md Section 18
+from app.api.v1.endpoints.search import router as search_router
+app.include_router(search_router, prefix="/api", include_in_schema=False)
+

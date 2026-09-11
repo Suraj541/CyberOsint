@@ -67,6 +67,19 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    # OpenSearch Configuration (Step 17 / Section 18)
+    OPENSEARCH_HOST: str = "localhost"
+    OPENSEARCH_PORT: int = 9200
+    OPENSEARCH_URL: str = Field(
+        default="http://localhost:9200",
+        description="OpenSearch cluster connection URL",
+    )
+    OPENSEARCH_INDEX: str = "cyber_osint_content"
+    OPENSEARCH_ENABLED: bool = Field(
+        default=True,
+        description="Enable OpenSearch indexing (falls back gracefully if offline)",
+    )
+
     # Ingestion Controls
     INGESTION_CONCURRENCY: int = 5
     DEFAULT_FETCH_TIMEOUT_SECONDS: int = 30

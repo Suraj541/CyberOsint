@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     health,
     queue,
     scheduler,
+    search,
     sources,
     taxonomy,
 )
@@ -43,6 +44,9 @@ api_router.include_router(extractor.router)
 
 # Advanced Deduplication Engine & Cluster endpoints
 api_router.include_router(deduplication.router)
+
+# OpenSearch Full-Text and Faceted Search endpoints
+api_router.include_router(search.router)
 
 # Background scheduler endpoints
 api_router.include_router(scheduler.router)

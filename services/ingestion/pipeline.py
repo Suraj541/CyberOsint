@@ -25,6 +25,7 @@ from services.deduplication import deduplication_engine, normalize_url
 from services.ingestion.deduplication import Deduplicator, compute_content_hash
 from services.ingestion.metrics import IngestionMetrics
 from services.ingestion.validation import ItemValidator
+from services.search import search_service
 
 logger = logging.getLogger("cyber_osint.services.ingestion.pipeline")
 
@@ -260,6 +261,17 @@ class IngestionPipeline:
                     url=content.canonical_url,
                     content_hash=content.content_hash,
                 )
+
+                # Automatic OpenSearch Indexing (Step 17 / Section 18)
+                try:
+                    search_service.index_content(
+                        db=db,
+                        content_id=content.id,
+                        category=classification.category,
+                        tags=tags_list,
+                    )
+                except Exception as index_exc:
+                    logger.warning("Failed to index content id=%s into search engine: %s", content.id, index_exc)
 
             except Exception as exc:
                 db.rollback()
