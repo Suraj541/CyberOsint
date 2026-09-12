@@ -21,6 +21,7 @@ from connectors.base import BaseConnector, NormalizedItem
 from connectors.registry import connector_registry
 from packages.classifier import rule_classifier
 from packages.extractor import entity_extractor
+from packages.mitre import mitre_service
 from services.deduplication import deduplication_engine, normalize_url
 from services.ingestion.deduplication import Deduplicator, compute_content_hash
 from services.ingestion.metrics import IngestionMetrics
@@ -353,6 +354,16 @@ class IngestionPipeline:
                 )
                 .first()
             )
+            # Automatic MITRE ATT&CK correlation enrichment (Section 26)
+            try:
+                mitre_corr = mitre_service.correlate_entity(ent.entity_type, clean_name)
+                if mitre_corr:
+                    if not ent.metadata:
+                        ent.metadata = {}
+                    ent.metadata["mitre_attack"] = mitre_corr
+            except Exception as mitre_exc:
+                logger.debug("MITRE correlation skipped for entity '%s': %s", clean_name, mitre_exc)
+
             meta_json = json.dumps(ent.metadata, default=str) if ent.metadata else None
 
             if not entity_obj:
@@ -372,6 +383,9 @@ class IngestionPipeline:
                 db.flush()
             else:
                 if meta_json and not entity_obj.metadata_json:
+                    entity_obj.metadata_json = meta_json
+                    db.flush()
+                elif meta_json and "mitre_attack" in ent.metadata and "mitre_attack" not in (entity_obj.metadata_json or ""):
                     entity_obj.metadata_json = meta_json
                     db.flush()
 
