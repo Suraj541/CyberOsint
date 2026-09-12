@@ -17,6 +17,7 @@ from app.api.v1.endpoints import (
     health,
     mitre,
     queue,
+    research,
     scheduler,
     search,
     semantic,
@@ -38,6 +39,9 @@ api_router.include_router(content.router)
 
 # AI Summarization endpoints (Section 29)
 api_router.include_router(summaries.router)
+
+# AI Research Assistant endpoints (Section 30)
+api_router.include_router(research.router)
 
 # Document Intelligence endpoints (Section 25)
 api_router.include_router(documents.router)

@@ -451,3 +451,63 @@ export interface ContentSummary {
   validation_score: number;
   validation_notes?: Record<string, any>;
 }
+
+// --------------------------------------------------------------------------
+// AI Research Interfaces (IMPLEMENT.md Section 30)
+// --------------------------------------------------------------------------
+
+export interface ResearchEvidenceItem {
+  citation_id: number;
+  content_id: number;
+  title: string;
+  source_name: string;
+  canonical_url: string;
+  published_at?: string;
+  quality_tier: string;
+  quality_score: number;
+  relevance_score: number;
+  snippet: string;
+  matched_entities: string[];
+}
+
+export interface ResearchSynthesis {
+  executive_answer: string;
+  key_findings: string[];
+  threat_activity: string[];
+  vulnerabilities: string[];
+  mitigations: string[];
+  evidence_gaps: string[];
+  confidence: number;
+}
+
+export interface PipelineStageTelemetry {
+  stage_number: number;
+  stage_name: string;
+  status: string;
+  details?: string;
+  item_count: number;
+}
+
+export interface QueryExpansionInfo {
+  original_query: string;
+  expanded_terms: string[];
+  detected_entities: string[];
+  search_keywords: string;
+}
+
+export interface ResearchResponse {
+  question: string;
+  expansion: QueryExpansionInfo;
+  pipeline_stages: PipelineStageTelemetry[];
+  evidence: ResearchEvidenceItem[];
+  synthesis: ResearchSynthesis;
+  execution_time_ms: number;
+}
+
+export interface SuggestedResearchQuery {
+  id: string;
+  title: string;
+  question: string;
+  category: string;
+  suggested_entities: string[];
+}
