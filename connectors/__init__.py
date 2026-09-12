@@ -10,6 +10,7 @@ from connectors.rss.connector import RSSConnector
 from connectors.cve.connector import CVEConnector
 from connectors.github.connector import GitHubSecurityConnector
 from connectors.cert.connector import CERTConnector
+from connectors.video.connector import VideoConnector
 
 __all__ = [
     "BaseConnector",
@@ -20,4 +21,6 @@ __all__ = [
     "CVEConnector",
     "GitHubSecurityConnector",
     "CERTConnector",
+    "VideoConnector",
 ]
+

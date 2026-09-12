@@ -98,6 +98,49 @@ export const ContentModal: React.FC<Props> = ({ item, onClose }) => {
             </div>
           )}
 
+          {/* Video Intelligence Timestamps (IMPLEMENT.md Section 24) */}
+          {item.video_metadata?.timestamps && item.video_metadata.timestamps.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs uppercase font-mono tracking-wider text-amber-400 font-bold flex items-center gap-1.5">
+                  <span>◈</span> Video Chapters & Key Timestamps
+                </h4>
+                {item.video_metadata.duration_formatted && (
+                  <span className="text-[11px] font-mono text-slate-400">
+                    Duration: {item.video_metadata.duration_formatted}
+                  </span>
+                )}
+              </div>
+              <div className="space-y-1.5 font-mono text-xs">
+                {item.video_metadata.timestamps.map((ts, idx) => (
+                  <div
+                    key={idx}
+                    className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-3 hover:border-amber-500/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-amber-950/40 text-amber-300 font-bold border border-amber-500/30 shrink-0">
+                        {ts.timestamp_str}
+                      </span>
+                      <span className="text-slate-200">&rarr; {ts.topic}</span>
+                    </div>
+                    {ts.entities && ts.entities.length > 0 && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        {ts.entities.slice(0, 2).map((ent, eIdx) => (
+                          <span
+                            key={eIdx}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-emerald-400 border border-slate-800"
+                          >
+                            {ent}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Tags */}
           {item.tags && item.tags.length > 0 && (
             <div>

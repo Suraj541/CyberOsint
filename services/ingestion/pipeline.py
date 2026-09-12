@@ -191,7 +191,8 @@ class IngestionPipeline:
                 db.add(content)
                 db.flush()  # Generate content.id
 
-                # Link taxonomy tags if provided in metadata
+                # Associate Taxonomy & Discovery Tags
+                seen_tag_ids: Set[int] = set()
                 tags_list = normalized.metadata.get("tags") or []
                 if isinstance(tags_list, list):
                     for tag_name in tags_list:
@@ -206,13 +207,14 @@ class IngestionPipeline:
                             db.add(tag_obj)
                             db.flush()
 
-                        # Associate ContentTag
-                        content_tag = ContentTag(
-                            content_id=content.id,
-                            tag_id=tag_obj.id,
-                            confidence=1.0,
-                        )
-                        db.add(content_tag)
+                        if tag_obj.id not in seen_tag_ids:
+                            seen_tag_ids.add(tag_obj.id)
+                            content_tag = ContentTag(
+                                content_id=content.id,
+                                tag_id=tag_obj.id,
+                                confidence=1.0,
+                            )
+                            db.add(content_tag)
 
                 # Link structured and regex-extracted entities
                 self._link_entities(db, content, normalized)
@@ -233,12 +235,14 @@ class IngestionPipeline:
                     db.add(domain_tag)
                     db.flush()
 
-                ct_domain = ContentTag(
-                    content_id=content.id,
-                    tag_id=domain_tag.id,
-                    confidence=classification.confidence,
-                )
-                db.add(ct_domain)
+                if domain_tag.id not in seen_tag_ids:
+                    seen_tag_ids.add(domain_tag.id)
+                    ct_domain = ContentTag(
+                        content_id=content.id,
+                        tag_id=domain_tag.id,
+                        confidence=classification.confidence,
+                    )
+                    db.add(ct_domain)
 
                 # Link predicted subcategory tag if present
                 if classification.subcategory:
@@ -248,12 +252,14 @@ class IngestionPipeline:
                         db.add(subdomain_tag)
                         db.flush()
 
-                    ct_subdomain = ContentTag(
-                        content_id=content.id,
-                        tag_id=subdomain_tag.id,
-                        confidence=classification.confidence,
-                    )
-                    db.add(ct_subdomain)
+                    if subdomain_tag.id not in seen_tag_ids:
+                        seen_tag_ids.add(subdomain_tag.id)
+                        ct_subdomain = ContentTag(
+                            content_id=content.id,
+                            tag_id=subdomain_tag.id,
+                            confidence=classification.confidence,
+                        )
+                        db.add(ct_subdomain)
 
                 db.commit()
                 metrics.record_ingested(

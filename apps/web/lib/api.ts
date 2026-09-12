@@ -123,10 +123,39 @@ export const FALLBACK_CONTENT: ContentItem[] = [
     severity: "HIGH",
     cvss_score: 7.8,
     tags: ["satcom", "hardware-security", "rf-hacking", "keynote"],
-    entities: [
-      { entity_type: "technology", name: "DVB-S2", confidence: 0.85 },
-      { entity_type: "vendor", name: "Iridium", confidence: 0.8 },
-    ],
+    video_metadata: {
+      channel: "DEF CON Conference",
+      duration: 3120,
+      duration_formatted: "00:52:00",
+      language: "en",
+      has_transcript: true,
+      timestamps: [
+        {
+          timestamp_str: "00:04:15",
+          seconds: 255,
+          topic: "SATCOM Architecture & Frequency Bands",
+          entities: ["DVB-S2", "Ku-Band"],
+        },
+        {
+          timestamp_str: "00:14:32",
+          seconds: 872,
+          topic: "Kerberos delegation",
+          entities: ["Kerberos", "Active Directory"],
+        },
+        {
+          timestamp_str: "00:28:51",
+          seconds: 1731,
+          topic: "Active Directory attack paths",
+          entities: ["Active Directory", "Mimikatz"],
+        },
+        {
+          timestamp_str: "00:41:20",
+          seconds: 2480,
+          topic: "Firmware extraction & SDR replay attack",
+          entities: ["SDR", "GNU Radio"],
+        },
+      ],
+    },
   },
   {
     id: 106,

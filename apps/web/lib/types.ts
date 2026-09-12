@@ -14,6 +14,23 @@ export interface ExtractedEntity {
   context_snippet?: string;
 }
 
+export interface VideoTimestampItem {
+  timestamp_str: string;
+  seconds: number;
+  topic: string;
+  text?: string;
+  entities?: string[];
+}
+
+export interface VideoMetadata {
+  channel?: string;
+  duration?: number;
+  duration_formatted?: string;
+  language?: string;
+  timestamps?: VideoTimestampItem[];
+  has_transcript?: boolean;
+}
+
 export interface ContentItem {
   id: number;
   title: string;
@@ -31,6 +48,7 @@ export interface ContentItem {
   raw_body?: string;
   severity?: SeverityLevel;
   cvss_score?: number;
+  video_metadata?: VideoMetadata;
 }
 
 export interface VulnerabilityItem {
