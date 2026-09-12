@@ -239,3 +239,103 @@ export interface EntityDetail {
   tools?: RelatedEntityItem[];
 }
 
+// --------------------------------------------------------------------------
+// MITRE ATT&CK Interfaces (IMPLEMENT.md Section 26)
+// --------------------------------------------------------------------------
+
+export interface AttackTactic {
+  id: string;
+  name: string;
+  description: string;
+  order: number;
+  url?: string;
+}
+
+export interface AttackTechnique {
+  id: string;
+  name: string;
+  description: string;
+  tactic_id: string;
+  tactic_name?: string;
+  parent_technique_id?: string;
+  is_subtechnique: boolean;
+  platforms: string[];
+  data_sources: string[];
+  detection_methods?: string;
+  url?: string;
+}
+
+export interface AttackGroup {
+  id: string;
+  name: string;
+  aliases: string[];
+  description: string;
+  associated_techniques: string[];
+  associated_software: string[];
+  url?: string;
+}
+
+export interface AttackSoftware {
+  id: string;
+  name: string;
+  software_type: string;
+  aliases: string[];
+  description: string;
+  associated_techniques: string[];
+  url?: string;
+}
+
+export interface AttackMitigation {
+  id: string;
+  name: string;
+  description: string;
+  associated_techniques: string[];
+  url?: string;
+}
+
+export interface AttackDataSource {
+  id: string;
+  name: string;
+  description: string;
+  collection_layers: string[];
+  associated_techniques: string[];
+  url?: string;
+}
+
+export interface AttackRelationship {
+  source_id: string;
+  source_type: string;
+  relationship: "uses" | "implements" | "belongs_to" | "detected_by" | "mitigates" | string;
+  target_id: string;
+  target_type: string;
+  description?: string;
+  confidence: number;
+}
+
+export interface AttackTechniqueDetail {
+  technique: AttackTechnique;
+  tactic?: AttackTactic;
+  subtechniques: AttackTechnique[];
+  threat_actors: AttackGroup[];
+  software: AttackSoftware[];
+  mitigations: AttackMitigation[];
+  data_sources: AttackDataSource[];
+}
+
+export interface AttackMatrixColumn {
+  tactic: AttackTactic;
+  techniques_count: number;
+  total_techniques_count: number;
+  techniques: Array<{
+    technique: AttackTechnique;
+    subtechniques: AttackTechnique[];
+  }>;
+}
+
+export interface AttackMatrixResponse {
+  matrix: AttackMatrixColumn[];
+  total_tactics: number;
+  total_techniques: number;
+}
+
+

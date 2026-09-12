@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     entities,
     extractor,
     health,
+    mitre,
     queue,
     scheduler,
     search,
@@ -41,6 +42,10 @@ api_router.include_router(dashboard.router)
 
 # Extracted entities & CVE intelligence
 api_router.include_router(entities.router)
+
+# MITRE ATT&CK Enterprise Matrix & Graph endpoints (Section 26)
+api_router.include_router(mitre.router)
+
 
 # Cybersecurity Taxonomy endpoints
 api_router.include_router(taxonomy.router)

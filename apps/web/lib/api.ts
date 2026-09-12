@@ -12,6 +12,16 @@ import {
   SourceConnectorItem,
   ThreatIntelligenceItem,
   VulnerabilityItem,
+  AttackDataSource,
+  AttackGroup,
+  AttackMatrixColumn,
+  AttackMatrixResponse,
+  AttackMitigation,
+  AttackRelationship,
+  AttackSoftware,
+  AttackTactic,
+  AttackTechnique,
+  AttackTechniqueDetail,
 } from "./types";
 
 
@@ -841,4 +851,529 @@ export async function fetchEntityById(idOrName: string | number): Promise<Entity
     };
   }
 }
+
+// =====================================================================
+// MITRE ATT&CK API Functions & Fallbacks (IMPLEMENT.md Section 26)
+// =====================================================================
+
+export const FALLBACK_MITRE_TACTICS: AttackTactic[] = [
+  { id: "TA0043", name: "Reconnaissance", description: "Gather information to plan future operations", order: 1 },
+  { id: "TA0042", name: "Resource Development", description: "Establish resources to support operations", order: 2 },
+  { id: "TA0001", name: "Initial Access", description: "Vectors used to get into your network", order: 3 },
+  { id: "TA0002", name: "Execution", description: "Running malicious code on target systems", order: 4 },
+  { id: "TA0003", name: "Persistence", description: "Maintaining foothold across restarts", order: 5 },
+  { id: "TA0004", name: "Privilege Escalation", description: "Gaining higher-level permissions", order: 6 },
+  { id: "TA0005", name: "Defense Evasion", description: "Avoiding detection by security analysts", order: 7 },
+  { id: "TA0006", name: "Credential Access", description: "Stealing passwords, hashes, and tokens", order: 8 },
+  { id: "TA0007", name: "Discovery", description: "Exploring the internal network and systems", order: 9 },
+  { id: "TA0008", name: "Lateral Movement", description: "Pivoting between environment assets", order: 10 },
+  { id: "TA0009", name: "Collection", description: "Gathering sensitive operational data", order: 11 },
+  { id: "TA0011", name: "Command and Control", description: "Communicating with compromised endpoints", order: 12 },
+  { id: "TA0010", name: "Exfiltration", description: "Stealing and transmitting data outside", order: 13 },
+  { id: "TA0040", name: "Impact", description: "Manipulating or destroying target data", order: 14 },
+];
+
+export const FALLBACK_MITRE_GROUPS: AttackGroup[] = [
+  {
+    id: "G0016",
+    name: "APT29",
+    aliases: ["Cozy Bear", "Nobelium", "Midnight Blizzard"],
+    description: "Russian foreign intelligence (SVR) cyber espionage operators known for SolarWinds and cloud persistence.",
+    associated_techniques: ["T1190", "T1566", "T1078.004", "T1059.001", "T1071"],
+    associated_software: ["S0154", "S0002"],
+    url: "https://attack.mitre.org/groups/G0016/",
+  },
+  {
+    id: "G0007",
+    name: "APT28",
+    aliases: ["Fancy Bear", "Forest Blizzard", "Sednit"],
+    description: "Russian military intelligence (GRU) cyber unit targeting aerospace, defense, and government entities.",
+    associated_techniques: ["T1190", "T1566.001", "T1003", "T1059", "T1021"],
+    associated_software: ["S0154", "S0002"],
+    url: "https://attack.mitre.org/groups/G0007/",
+  },
+  {
+    id: "G0125",
+    name: "Volt Typhoon",
+    aliases: ["Bronze Silhouette", "Vanguard Panda"],
+    description: "Chinese state-sponsored espionage group targeting critical infrastructure using living-off-the-land techniques.",
+    associated_techniques: ["T1190", "T1078", "T1059.003", "T1046", "T1021"],
+    associated_software: [],
+    url: "https://attack.mitre.org/groups/G0125/",
+  },
+  {
+    id: "G0140",
+    name: "Akira",
+    aliases: ["Punk Spider"],
+    description: "Ransomware-as-a-service group weaponizing VPN edge vulnerabilities and double-extortion tactics.",
+    associated_techniques: ["T1190", "T1078", "T1059.001", "T1486", "T1041"],
+    associated_software: ["S0650", "S0002"],
+    url: "https://attack.mitre.org/groups/G0140/",
+  },
+];
+
+export const FALLBACK_MITRE_SOFTWARE: AttackSoftware[] = [
+  {
+    id: "S0154",
+    name: "Cobalt Strike",
+    software_type: "tool",
+    aliases: ["Beacon"],
+    description: "Commercial post-exploitation adversary emulator widely abused for interactive beaconing and lateral movement.",
+    associated_techniques: ["T1059.001", "T1055", "T1071", "T1021"],
+    url: "https://attack.mitre.org/software/S0154/",
+  },
+  {
+    id: "S0002",
+    name: "Mimikatz",
+    software_type: "tool",
+    aliases: [],
+    description: "Post-exploitation utility that extracts plaintext passwords, Kerberos tickets, and NTLM hashes from memory.",
+    associated_techniques: ["T1003", "T1003.001", "T1055"],
+    url: "https://attack.mitre.org/software/S0002/",
+  },
+  {
+    id: "S0650",
+    name: "Akira",
+    software_type: "malware",
+    aliases: ["Akira Ransomware"],
+    description: "Modern multi-threaded ransomware variant targeting Windows and Linux ESXi hypervisors.",
+    associated_techniques: ["T1486", "T1059.001", "T1027"],
+    url: "https://attack.mitre.org/software/S0650/",
+  },
+];
+
+export const FALLBACK_MITRE_MATRIX: AttackMatrixResponse = {
+  total_tactics: 14,
+  total_techniques: 23,
+  matrix: [
+    {
+      tactic: { id: "TA0043", name: "Reconnaissance", description: "Information gathering", order: 1 },
+      techniques_count: 1,
+      total_techniques_count: 1,
+      techniques: [
+        {
+          technique: {
+            id: "T1589",
+            name: "Gather Victim Identity Information",
+            description: "Gathering personnel information to facilitate social engineering.",
+            tactic_id: "TA0043",
+            is_subtechnique: false,
+            platforms: ["PRE"],
+            data_sources: ["DS0028"],
+          },
+          subtechniques: [],
+        },
+      ],
+    },
+    {
+      tactic: { id: "TA0042", name: "Resource Development", description: "Establishing operational resources", order: 2 },
+      techniques_count: 1,
+      total_techniques_count: 1,
+      techniques: [
+        {
+          technique: {
+            id: "T1588",
+            name: "Obtain Capabilities",
+            description: "Buying or stealing exploits, certificates, and infrastructure.",
+            tactic_id: "TA0042",
+            is_subtechnique: false,
+            platforms: ["PRE"],
+            data_sources: ["DS0028"],
+          },
+          subtechniques: [],
+        },
+      ],
+    },
+    {
+      tactic: { id: "TA0001", name: "Initial Access", description: "Vectors used to enter environment", order: 3 },
+      techniques_count: 3,
+      total_techniques_count: 6,
+      techniques: [
+        {
+          technique: {
+            id: "T1190",
+            name: "Exploit Public-Facing Application",
+            description: "Exploiting bugs in internet-accessible software or edge gateways.",
+            tactic_id: "TA0001",
+            is_subtechnique: false,
+            platforms: ["Linux", "Windows"],
+            data_sources: ["DS0028", "DS0015"],
+          },
+          subtechniques: [],
+        },
+        {
+          technique: {
+            id: "T1566",
+            name: "Phishing",
+            description: "Sending deceptive communications to gain execution or credentials.",
+            tactic_id: "TA0001",
+            is_subtechnique: false,
+            platforms: ["Linux", "macOS", "Windows"],
+            data_sources: ["DS0028"],
+          },
+          subtechniques: [
+            {
+              id: "T1566.001",
+              name: "Spearphishing Attachment",
+              description: "Sending targeted emails with malicious files.",
+              tactic_id: "TA0001",
+              parent_technique_id: "T1566",
+              is_subtechnique: true,
+              platforms: ["Windows"],
+              data_sources: ["DS0028", "DS0024"],
+            },
+            {
+              id: "T1566.002",
+              name: "Spearphishing Link",
+              description: "Sending targeted emails with links to exploit kits or credential harvesters.",
+              tactic_id: "TA0001",
+              parent_technique_id: "T1566",
+              is_subtechnique: true,
+              platforms: ["Windows"],
+              data_sources: ["DS0028"],
+            },
+          ],
+        },
+        {
+          technique: {
+            id: "T1078",
+            name: "Valid Accounts",
+            description: "Abusing stolen or legitimate credentials.",
+            tactic_id: "TA0001",
+            is_subtechnique: false,
+            platforms: ["Cloud", "Identity", "Windows"],
+            data_sources: ["DS0012", "DS0029"],
+          },
+          subtechniques: [
+            {
+              id: "T1078.004",
+              name: "Cloud Accounts",
+              description: "Abusing Azure AD, AWS IAM, or GCP credentials.",
+              tactic_id: "TA0001",
+              parent_technique_id: "T1078",
+              is_subtechnique: true,
+              platforms: ["Cloud"],
+              data_sources: ["DS0029"],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      tactic: { id: "TA0002", name: "Execution", description: "Running malicious instructions", order: 4 },
+      techniques_count: 1,
+      total_techniques_count: 3,
+      techniques: [
+        {
+          technique: {
+            id: "T1059",
+            name: "Command and Scripting Interpreter",
+            description: "Executing arbitrary commands through system shells.",
+            tactic_id: "TA0002",
+            is_subtechnique: false,
+            platforms: ["Windows", "Linux"],
+            data_sources: ["DS0015", "DS0017"],
+          },
+          subtechniques: [
+            {
+              id: "T1059.001",
+              name: "PowerShell",
+              description: "Executing encoded or in-memory PowerShell commands.",
+              tactic_id: "TA0002",
+              parent_technique_id: "T1059",
+              is_subtechnique: true,
+              platforms: ["Windows"],
+              data_sources: ["DS0015", "DS0017"],
+            },
+            {
+              id: "T1059.003",
+              name: "Windows Command Shell",
+              description: "Executing commands in cmd.exe or batch scripts.",
+              tactic_id: "TA0002",
+              parent_technique_id: "T1059",
+              is_subtechnique: true,
+              platforms: ["Windows"],
+              data_sources: ["DS0015", "DS0017"],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      tactic: { id: "TA0003", name: "Persistence", description: "Maintaining foothold across reboots", order: 5 },
+      techniques_count: 1,
+      total_techniques_count: 1,
+      techniques: [
+        {
+          technique: {
+            id: "T1053",
+            name: "Scheduled Task/Job",
+            description: "Abusing task scheduler for periodic execution.",
+            tactic_id: "TA0003",
+            is_subtechnique: false,
+            platforms: ["Windows", "Linux"],
+            data_sources: ["DS0015"],
+          },
+          subtechniques: [],
+        },
+      ],
+    },
+    {
+      tactic: { id: "TA0004", name: "Privilege Escalation", description: "Gaining higher privileges", order: 6 },
+      techniques_count: 1,
+      total_techniques_count: 1,
+      techniques: [
+        {
+          technique: {
+            id: "T1068",
+            name: "Exploitation for Privilege Escalation",
+            description: "Elevating rights using local vulnerabilities.",
+            tactic_id: "TA0004",
+            is_subtechnique: false,
+            platforms: ["Windows", "Linux"],
+            data_sources: ["DS0015"],
+          },
+          subtechniques: [],
+        },
+      ],
+    },
+    {
+      tactic: { id: "TA0005", name: "Defense Evasion", description: "Evading endpoint detection", order: 7 },
+      techniques_count: 2,
+      total_techniques_count: 2,
+      techniques: [
+        {
+          technique: {
+            id: "T1055",
+            name: "Process Injection",
+            description: "Injecting shellcode into legitimate processes.",
+            tactic_id: "TA0005",
+            is_subtechnique: false,
+            platforms: ["Windows"],
+            data_sources: ["DS0017"],
+          },
+          subtechniques: [],
+        },
+        {
+          technique: {
+            id: "T1027",
+            name: "Obfuscated Files or Information",
+            description: "Encoding or packing payloads to resist signature detection.",
+            tactic_id: "TA0005",
+            is_subtechnique: false,
+            platforms: ["Windows", "Linux"],
+            data_sources: ["DS0024"],
+          },
+          subtechniques: [],
+        },
+      ],
+    },
+    {
+      tactic: { id: "TA0006", name: "Credential Access", description: "Stealing account credentials", order: 8 },
+      techniques_count: 1,
+      total_techniques_count: 2,
+      techniques: [
+        {
+          technique: {
+            id: "T1003",
+            name: "OS Credential Dumping",
+            description: "Dumping passwords and Kerberos tickets.",
+            tactic_id: "TA0006",
+            is_subtechnique: false,
+            platforms: ["Windows"],
+            data_sources: ["DS0017"],
+          },
+          subtechniques: [
+            {
+              id: "T1003.001",
+              name: "LSASS Memory",
+              description: "Dumping credentials from lsass.exe process memory.",
+              tactic_id: "TA0006",
+              parent_technique_id: "T1003",
+              is_subtechnique: true,
+              platforms: ["Windows"],
+              data_sources: ["DS0017"],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      tactic: { id: "TA0007", name: "Discovery", description: "Exploring environment layout", order: 9 },
+      techniques_count: 1,
+      total_techniques_count: 1,
+      techniques: [
+        {
+          technique: {
+            id: "T1046",
+            name: "Network Service Discovery",
+            description: "Scanning internal subnet services and ports.",
+            tactic_id: "TA0007",
+            is_subtechnique: false,
+            platforms: ["Network", "Windows"],
+            data_sources: ["DS0028"],
+          },
+          subtechniques: [],
+        },
+      ],
+    },
+    {
+      tactic: { id: "TA0008", name: "Lateral Movement", description: "Pivoting across machines", order: 10 },
+      techniques_count: 1,
+      total_techniques_count: 1,
+      techniques: [
+        {
+          technique: {
+            id: "T1021",
+            name: "Remote Services",
+            description: "Logging in via RDP, SSH, or SMB.",
+            tactic_id: "TA0008",
+            is_subtechnique: false,
+            platforms: ["Windows", "Linux"],
+            data_sources: ["DS0012", "DS0028"],
+          },
+          subtechniques: [],
+        },
+      ],
+    },
+    {
+      tactic: { id: "TA0009", name: "Collection", description: "Gathering targets of interest", order: 11 },
+      techniques_count: 1,
+      total_techniques_count: 1,
+      techniques: [
+        {
+          technique: {
+            id: "T1114",
+            name: "Email Collection",
+            description: "Harvesting emails and mailbox contents.",
+            tactic_id: "TA0009",
+            is_subtechnique: false,
+            platforms: ["SaaS", "Cloud"],
+            data_sources: ["DS0029"],
+          },
+          subtechniques: [],
+        },
+      ],
+    },
+    {
+      tactic: { id: "TA0011", name: "Command and Control", description: "Remote control communication", order: 12 },
+      techniques_count: 1,
+      total_techniques_count: 1,
+      techniques: [
+        {
+          technique: {
+            id: "T1071",
+            name: "Application Layer Protocol",
+            description: "Communicating over HTTPS or DNS to blend with normal traffic.",
+            tactic_id: "TA0011",
+            is_subtechnique: false,
+            platforms: ["Windows", "Linux"],
+            data_sources: ["DS0028"],
+          },
+          subtechniques: [],
+        },
+      ],
+    },
+    {
+      tactic: { id: "TA0010", name: "Exfiltration", description: "Stealing data out of network", order: 13 },
+      techniques_count: 1,
+      total_techniques_count: 1,
+      techniques: [
+        {
+          technique: {
+            id: "T1041",
+            name: "Exfiltration Over C2 Channel",
+            description: "Transmitting stolen data back through command channel.",
+            tactic_id: "TA0010",
+            is_subtechnique: false,
+            platforms: ["Windows", "Linux"],
+            data_sources: ["DS0028"],
+          },
+          subtechniques: [],
+        },
+      ],
+    },
+    {
+      tactic: { id: "TA0040", name: "Impact", description: "Disrupting operational availability", order: 14 },
+      techniques_count: 1,
+      total_techniques_count: 1,
+      techniques: [
+        {
+          technique: {
+            id: "T1486",
+            name: "Data Encrypted for Impact",
+            description: "Ransomware encryption interrupting business operations.",
+            tactic_id: "TA0040",
+            is_subtechnique: false,
+            platforms: ["Windows", "Linux"],
+            data_sources: ["DS0024", "DS0015"],
+          },
+          subtechniques: [],
+        },
+      ],
+    },
+  ],
+};
+
+export async function getMitreMatrix(): Promise<AttackMatrixResponse> {
+  try {
+    const res = await fetch(`${API_BASE}/mitre/matrix`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Matrix fetch failed");
+    return await res.json();
+  } catch {
+    return FALLBACK_MITRE_MATRIX;
+  }
+}
+
+export async function getMitreTactics(): Promise<AttackTactic[]> {
+  try {
+    const res = await fetch(`${API_BASE}/mitre/tactics`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Tactics fetch failed");
+    return await res.json();
+  } catch {
+    return FALLBACK_MITRE_TACTICS;
+  }
+}
+
+export async function getMitreTechnique(id: string): Promise<AttackTechniqueDetail | null> {
+  try {
+    const res = await fetch(`${API_BASE}/mitre/techniques/${id}`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Technique fetch failed");
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getMitreGroups(): Promise<AttackGroup[]> {
+  try {
+    const res = await fetch(`${API_BASE}/mitre/groups`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Groups fetch failed");
+    return await res.json();
+  } catch {
+    return FALLBACK_MITRE_GROUPS;
+  }
+}
+
+export async function getMitreSoftware(): Promise<AttackSoftware[]> {
+  try {
+    const res = await fetch(`${API_BASE}/mitre/software`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Software fetch failed");
+    return await res.json();
+  } catch {
+    return FALLBACK_MITRE_SOFTWARE;
+  }
+}
+
+export async function getMitreRelationships(rel?: string): Promise<AttackRelationship[]> {
+  try {
+    const url = rel ? `${API_BASE}/mitre/relationships?relationship=${rel}` : `${API_BASE}/mitre/relationships`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error("Relationships fetch failed");
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+
 

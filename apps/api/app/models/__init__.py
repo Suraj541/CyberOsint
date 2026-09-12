@@ -11,6 +11,15 @@ from app.models.entity import Entity, ContentEntity
 from app.models.tag import Tag, ContentTag
 from app.models.duplicate import DuplicateLink
 from app.models.chunk import ContentChunk
+from app.models.mitre import (
+    MitreDataSourceModel,
+    MitreGroupModel,
+    MitreMitigationModel,
+    MitreRelationshipModel,
+    MitreSoftwareModel,
+    MitreTacticModel,
+    MitreTechniqueModel,
+)
 
 __all__ = [
     "Base",
@@ -25,4 +34,12 @@ __all__ = [
     "ContentTag",
     "DuplicateLink",
     "ContentChunk",
+    "MitreTacticModel",
+    "MitreTechniqueModel",
+    "MitreGroupModel",
+    "MitreSoftwareModel",
+    "MitreMitigationModel",
+    "MitreDataSourceModel",
+    "MitreRelationshipModel",
 ]
+
