@@ -33,5 +33,14 @@ class Source(BaseModel):
         passive_deletes=True,
     )
 
+    # Relationship to SourceQuality profile (Section 28)
+    quality = relationship(
+        "SourceQuality",
+        uselist=False,
+        back_populates="source",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
     def __repr__(self) -> str:
         return f"<Source(id={self.id}, name='{self.name}', type='{self.source_type}', active={self.active})>"

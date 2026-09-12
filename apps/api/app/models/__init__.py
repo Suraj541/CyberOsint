@@ -21,6 +21,7 @@ from app.models.mitre import (
     MitreTechniqueModel,
 )
 from app.models.graph import EntityRelationship
+from app.models.source_quality import SourceQuality
 
 
 __all__ = [
@@ -44,6 +45,7 @@ __all__ = [
     "MitreDataSourceModel",
     "MitreRelationshipModel",
     "EntityRelationship",
+    "SourceQuality",
 ]
 
 

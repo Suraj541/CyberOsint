@@ -10,9 +10,11 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.ingestion import IngestionResponse
 from app.schemas.source import SourceCreate, SourceResponse, SourceUpdate
+from app.schemas.source_quality import SourceQualityOut, SourceQualityRecalculateResponse
 from app.services.ingestion import ingestion_pipeline
 from app.services.source_registry import source_registry_service
 from connectors.base import ConnectorHealth
+from services.reliability import source_reliability_service
 
 router = APIRouter(prefix="/sources", tags=["Sources"])
 
@@ -170,3 +172,80 @@ def trigger_source_ingestion(
         )
     metrics = ingestion_pipeline.ingest_source(db, source)
     return IngestionResponse(**metrics.to_dict())
+
+
+# =====================================================================
+# Source Reliability Endpoints (IMPLEMENT.md Section 28)
+# =====================================================================
+
+@router.get(
+    "/quality/all",
+    response_model=List[SourceQualityOut],
+    status_code=status.HTTP_200_OK,
+    summary="List Quality Profiles for All Sources",
+)
+def list_all_source_qualities(db: Session = Depends(get_db)) -> List[SourceQualityOut]:
+    """
+    Retrieve reliability quality metrics across all registered sources.
+    Evaluates: authority, accuracy, technical_depth, originality, historical_reliability.
+    Constraint: Internal ranking indicator — not an unquestionable truth score.
+    """
+    metrics_list = source_reliability_service.recalculate_all(db)
+    return [SourceQualityOut(**m.to_dict()) for m in metrics_list]
+
+
+@router.post(
+    "/quality/recalculate-all",
+    response_model=SourceQualityRecalculateResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Recalculate Reliability Across All Sources",
+)
+def recalculate_all_source_qualities(db: Session = Depends(get_db)) -> SourceQualityRecalculateResponse:
+    """Trigger complete recalculation of reliability quality metrics for all registered sources."""
+    metrics_list = source_reliability_service.recalculate_all(db)
+    return SourceQualityRecalculateResponse(
+        status="ok",
+        recalculated_count=len(metrics_list),
+        qualities=[SourceQualityOut(**m.to_dict()) for m in metrics_list],
+    )
+
+
+@router.get(
+    "/{source_id}/quality",
+    response_model=SourceQualityOut,
+    status_code=status.HTTP_200_OK,
+    summary="Get Source Quality Profile",
+)
+def get_source_quality(source_id: int, db: Session = Depends(get_db)) -> SourceQualityOut:
+    """
+    Retrieve multi-dimensional reliability quality assessment for a specific source.
+    Calculates: authority, accuracy, technical_depth, originality, historical_reliability.
+    Constraint: Internal ranking indicator — not an unquestionable truth score.
+    """
+    source = source_registry_service.get_source(db, source_id)
+    if not source:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Source with id {source_id} not found",
+        )
+    metrics = source_reliability_service.get_source_quality(db, source_id)
+    return SourceQualityOut(**metrics.to_dict())
+
+
+@router.post(
+    "/{source_id}/quality/recalculate",
+    response_model=SourceQualityOut,
+    status_code=status.HTTP_200_OK,
+    summary="Recalculate Source Quality Profile",
+)
+def recalculate_source_quality(source_id: int, db: Session = Depends(get_db)) -> SourceQualityOut:
+    """Force re-computation of source quality metrics based on current harvested content."""
+    source = source_registry_service.get_source(db, source_id)
+    if not source:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Source with id {source_id} not found",
+        )
+    metrics = source_reliability_service.update_or_create_source_quality(db, source_id)
+    return SourceQualityOut(**metrics.to_dict())
+

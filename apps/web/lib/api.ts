@@ -29,6 +29,7 @@ import {
   GraphSubgraph,
   RelationshipCreateInput,
   RelationshipItem,
+  SourceQuality,
 } from "./types";
 
 
@@ -1608,5 +1609,183 @@ export async function getGraphStats(): Promise<GraphStats> {
     return await res.json();
   } catch {
     return FALLBACK_GRAPH_STATS;
+  }
+}
+
+// =====================================================================
+// Source Reliability API (IMPLEMENT.md Section 28)
+// =====================================================================
+
+export const FALLBACK_SOURCE_QUALITIES: Record<number, SourceQuality> = {
+  1: {
+    source_id: 1,
+    source_name: "CISA Cybersecurity Advisories",
+    authority: 0.98,
+    accuracy: 0.96,
+    technical_depth: 0.90,
+    originality: 0.95,
+    historical_reliability: 0.97,
+    overall_score: 0.954,
+    quality_tier: "Tier 1 (Authoritative)",
+    indicator_symbol: "A+",
+    eval_metadata: {
+      type: "cert",
+      domain: "cisa.gov",
+      verified_cves: 142,
+    },
+    disclaimer: "Internal analytical ranking indicator — not an absolute truth score",
+  },
+  2: {
+    source_id: 2,
+    source_name: "NVD CVE Data Stream",
+    authority: 0.99,
+    accuracy: 0.98,
+    technical_depth: 0.92,
+    originality: 0.96,
+    historical_reliability: 0.98,
+    overall_score: 0.968,
+    quality_tier: "Tier 1 (Authoritative)",
+    indicator_symbol: "A+",
+    eval_metadata: {
+      type: "cve",
+      domain: "nvd.nist.gov",
+      verified_cves: 2450,
+    },
+    disclaimer: "Internal analytical ranking indicator — not an absolute truth score",
+  },
+  3: {
+    source_id: 3,
+    source_name: "Google Project Zero Research",
+    authority: 0.95,
+    accuracy: 0.94,
+    technical_depth: 0.96,
+    originality: 0.98,
+    historical_reliability: 0.92,
+    overall_score: 0.950,
+    quality_tier: "Tier 1 (Authoritative)",
+    indicator_symbol: "A+",
+    eval_metadata: {
+      type: "vendor",
+      domain: "googleprojectzero.blogspot.com",
+      zero_days: 34,
+    },
+    disclaimer: "Internal analytical ranking indicator — not an absolute truth score",
+  },
+  4: {
+    source_id: 4,
+    source_name: "Microsoft Security Response Center",
+    authority: 0.94,
+    accuracy: 0.93,
+    technical_depth: 0.88,
+    originality: 0.92,
+    historical_reliability: 0.90,
+    overall_score: 0.916,
+    quality_tier: "Tier 1 (Authoritative)",
+    indicator_symbol: "A",
+    eval_metadata: {
+      type: "vendor",
+      domain: "msrc.microsoft.com",
+    },
+    disclaimer: "Internal analytical ranking indicator — not an absolute truth score",
+  },
+  5: {
+    source_id: 5,
+    source_name: "BleepingComputer News",
+    authority: 0.82,
+    accuracy: 0.85,
+    technical_depth: 0.74,
+    originality: 0.80,
+    historical_reliability: 0.88,
+    overall_score: 0.817,
+    quality_tier: "Tier 2 (High)",
+    indicator_symbol: "B+",
+    eval_metadata: {
+      type: "blog",
+      domain: "bleepingcomputer.com",
+    },
+    disclaimer: "Internal analytical ranking indicator — not an absolute truth score",
+  },
+  6: {
+    source_id: 6,
+    source_name: "Krebs on Security",
+    authority: 0.84,
+    accuracy: 0.86,
+    technical_depth: 0.72,
+    originality: 0.88,
+    historical_reliability: 0.85,
+    overall_score: 0.829,
+    quality_tier: "Tier 2 (High)",
+    indicator_symbol: "B+",
+    eval_metadata: {
+      type: "blog",
+      domain: "krebsonsecurity.com",
+    },
+    disclaimer: "Internal analytical ranking indicator — not an absolute truth score",
+  },
+};
+
+export async function getSourceQuality(sourceId: number): Promise<SourceQuality | null> {
+  try {
+    const res = await fetch(`${API_BASE}/sources/${sourceId}/quality`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Quality fetch failed");
+    return await res.json();
+  } catch {
+    return FALLBACK_SOURCE_QUALITIES[sourceId] || {
+      source_id: sourceId,
+      source_name: `Source #${sourceId}`,
+      authority: 0.75,
+      accuracy: 0.80,
+      technical_depth: 0.70,
+      originality: 0.75,
+      historical_reliability: 0.80,
+      overall_score: 0.76,
+      quality_tier: "Tier 2 (High)",
+      indicator_symbol: "B+",
+      disclaimer: "Internal analytical ranking indicator — not an absolute truth score",
+    };
+  }
+}
+
+export async function getAllSourceQualities(): Promise<SourceQuality[]> {
+  try {
+    const res = await fetch(`${API_BASE}/sources/quality/all`, { cache: "no-store" });
+    if (!res.ok) throw new Error("List all qualities failed");
+    return await res.json();
+  } catch {
+    return Object.values(FALLBACK_SOURCE_QUALITIES);
+  }
+}
+
+export async function recalculateSourceQuality(sourceId: number): Promise<SourceQuality | null> {
+  try {
+    const res = await fetch(`${API_BASE}/sources/${sourceId}/quality/recalculate`, {
+      method: "POST",
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Recalculate failed");
+    return await res.json();
+  } catch {
+    return FALLBACK_SOURCE_QUALITIES[sourceId] || null;
+  }
+}
+
+export async function recalculateAllSourceQualities(): Promise<{
+  status: string;
+  recalculated_count: number;
+  qualities: SourceQuality[];
+}> {
+  try {
+    const res = await fetch(`${API_BASE}/sources/quality/recalculate-all`, {
+      method: "POST",
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Recalculate all failed");
+    return await res.json();
+  } catch {
+    return {
+      status: "ok",
+      recalculated_count: Object.keys(FALLBACK_SOURCE_QUALITIES).length,
+      qualities: Object.values(FALLBACK_SOURCE_QUALITIES),
+    };
   }
 }

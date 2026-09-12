@@ -74,6 +74,7 @@ export interface ContentItem {
   cvss_score?: number;
   video_metadata?: VideoMetadata;
   document_metadata?: DocumentMetadata;
+  source_quality?: SourceQuality;
 }
 
 export interface VulnerabilityItem {
@@ -112,6 +113,7 @@ export interface SourceConnectorItem {
   last_fetched_at?: string;
   last_status?: "success" | "error" | "pending";
   items_count?: number;
+  quality?: SourceQuality;
 }
 
 export interface DashboardMetrics {
@@ -405,4 +407,23 @@ export interface RelationshipCreateInput {
   target_entity_id: number;
   confidence?: number;
   source_content_id?: number;
+}
+
+// --------------------------------------------------------------------------
+// Source Reliability Interfaces (IMPLEMENT.md Section 28)
+// --------------------------------------------------------------------------
+
+export interface SourceQuality {
+  source_id: number;
+  source_name: string;
+  authority: number;
+  accuracy: number;
+  technical_depth: number;
+  originality: number;
+  historical_reliability: number;
+  overall_score: number;
+  quality_tier: string;
+  indicator_symbol: string;
+  eval_metadata?: Record<string, any>;
+  disclaimer: string;
 }

@@ -7,6 +7,7 @@ import { fetchContentById, fetchRelatedContent } from "../../../lib/api";
 import { ContentItem } from "../../../lib/types";
 import { SeverityBadge } from "../../../components/SeverityBadge";
 import { ContentCard } from "../../../components/ContentCard";
+import { SourceQualityBadge } from "../../../components/SourceQualityBadge";
 
 export default function ContentDetailPage() {
   const params = useParams();
@@ -102,6 +103,7 @@ export default function ContentDetailPage() {
           <span className="text-xs uppercase font-mono px-2.5 py-1 rounded bg-slate-800 text-cyan-400 border border-slate-700 font-bold">
             {item.source}
           </span>
+          <SourceQualityBadge quality={item.source_quality} sourceName={item.source} size="xs" />
           <span className="text-xs uppercase font-mono px-2.5 py-1 rounded bg-slate-800/80 text-slate-300 border border-slate-700">
             {item.category?.replace(/_/g, " ") || "general"}
           </span>
@@ -128,7 +130,10 @@ export default function ContentDetailPage() {
         </div>
         <div>
           <span className="text-slate-500 block mb-1">PROVENANCE SOURCE</span>
-          <span className="text-cyan-400 font-semibold">{item.source}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-cyan-400 font-semibold">{item.source}</span>
+            <SourceQualityBadge quality={item.source_quality} sourceName={item.source} size="xs" />
+          </div>
         </div>
         <div>
           <span className="text-slate-500 block mb-1">TAXONOMY CATEGORY</span>

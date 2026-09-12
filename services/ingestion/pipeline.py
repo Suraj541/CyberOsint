@@ -27,6 +27,7 @@ from services.ingestion.deduplication import Deduplicator, compute_content_hash
 from services.ingestion.metrics import IngestionMetrics
 from services.ingestion.validation import ItemValidator
 from services.graph import knowledge_graph_service
+from services.reliability import source_reliability_service
 from services.search import search_service
 from services.semantic import semantic_service
 
@@ -298,7 +299,7 @@ class IngestionPipeline:
                 metrics.record_error(err_msg)
 
         # -------------------------------------------------------------
-        # STEP 6: Update Source Telemetry
+        # STEP 6: Update Source Telemetry & Reliability Quality (Section 28)
         # -------------------------------------------------------------
         if source_id:
             try:
@@ -306,6 +307,11 @@ class IngestionPipeline:
                 if source:
                     source.last_checked = datetime.now(timezone.utc)
                     db.commit()
+                    # Trigger source reliability quality update (Section 28)
+                    try:
+                        source_reliability_service.update_or_create_source_quality(db, source_id)
+                    except Exception as q_exc:
+                        logger.debug("Source quality update skipped for source %s: %s", source_id, q_exc)
             except Exception as exc:
                 logger.warning("Failed to update source %s last_checked: %s", source_id, exc)
 
