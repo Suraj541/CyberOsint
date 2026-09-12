@@ -45,10 +45,60 @@ class EntityResponse(EntityBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RelatedEntitySummary(BaseModel):
+    """Summary of an entity co-occurring with the primary entity."""
+
+    id: int
+    name: str
+    entity_type: str
+    normalized_name: str
+    mention_count: int = 1
+    description: Optional[str] = None
+
+
+class TimelineEventResponse(BaseModel):
+    """Chronological event in the entity activity timeline."""
+
+    date: Optional[str] = None
+    title: str
+    event_type: str
+    content_id: Optional[int] = None
+    url: Optional[str] = None
+
+
+class CVESeverityDetail(BaseModel):
+    """Structured severity metrics for a CVE vulnerability."""
+
+    cvss_score: Optional[float] = None
+    severity_rating: Optional[str] = None
+    vector_string: Optional[str] = None
+    cwe_id: Optional[str] = None
+
+
 class EntityDetailResponse(EntityResponse):
-    """Detailed entity view including all linked intelligence content."""
+    """Detailed entity view including all linked intelligence content, relationships, and timeline."""
 
     linked_content: List[ContentEntityLinkResponse] = Field(default_factory=list)
+
+    # Correlated Content Partitioning
+    articles: List[ContentEntityLinkResponse] = Field(default_factory=list)
+    reports: List[ContentEntityLinkResponse] = Field(default_factory=list)
+
+    # Relationships & Timeline
+    related_entities: List[RelatedEntitySummary] = Field(default_factory=list)
+    timeline: List[TimelineEventResponse] = Field(default_factory=list)
+
+    # CVE Specialized Fields (IMPLEMENT.md Section 23)
+    severity: Optional[CVESeverityDetail] = None
+    affected_products: List[str] = Field(default_factory=list)
+    references: List[str] = Field(default_factory=list)
+
+    # Malware Specialized Fields (IMPLEMENT.md Section 23)
+    aliases: List[str] = Field(default_factory=list)
+    threat_actors: List[RelatedEntitySummary] = Field(default_factory=list)
+    campaigns: List[str] = Field(default_factory=list)
+    techniques: List[RelatedEntitySummary] = Field(default_factory=list)
+    tools: List[RelatedEntitySummary] = Field(default_factory=list)
 
 
 class EntityStatsResponse(BaseModel):
@@ -56,3 +106,4 @@ class EntityStatsResponse(BaseModel):
 
     total_entities: int
     by_type: Dict[str, int] = Field(default_factory=dict)
+

@@ -168,22 +168,30 @@ export default function ContentDetailPage() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {item.entities.map((ent, idx) => (
-              <div
+              <Link
                 key={idx}
-                className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-emerald-500/40 transition-colors flex items-center justify-between font-mono text-xs"
+                href={`/entities/${ent.id || encodeURIComponent(ent.name)}`}
+                className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-emerald-500/40 transition-colors flex items-center justify-between font-mono text-xs group"
               >
                 <div>
-                  <span className="font-bold text-white block text-sm">{ent.name}</span>
+                  <span className="font-bold text-white group-hover:text-emerald-400 block text-sm transition-colors">
+                    {ent.name}
+                  </span>
                   <span className="text-[11px] text-emerald-400 uppercase tracking-wider">
                     {ent.entity_type}
                   </span>
                 </div>
-                {ent.confidence !== undefined && (
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">
-                    {(ent.confidence * 100).toFixed(0)}% Conf.
+                <div className="flex items-center gap-2">
+                  {ent.confidence !== undefined && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">
+                      {(ent.confidence * 100).toFixed(0)}% Conf.
+                    </span>
+                  )}
+                  <span className="text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    &rarr;
                   </span>
-                )}
-              </div>
+                </div>
+              </Link>
             ))}
           </div>
         </div>
