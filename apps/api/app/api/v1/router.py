@@ -10,6 +10,7 @@ from app.api.v1.endpoints import (
     content,
     dashboard,
     deduplication,
+    documents,
     entities,
     extractor,
     health,
@@ -31,6 +32,9 @@ api_router.include_router(sources.router)
 
 # Normalized content endpoints
 api_router.include_router(content.router)
+
+# Document Intelligence endpoints (Section 25)
+api_router.include_router(documents.router)
 
 # Dashboard intelligence aggregator endpoints (Section 21)
 api_router.include_router(dashboard.router)

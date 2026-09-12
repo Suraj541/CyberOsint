@@ -43,8 +43,49 @@ from services.documents import (
 )
 
 
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.database import get_db
+from app.main import app
+from app.models.base import Base
+
+
 class TestStage24DocumentIntelligence(unittest.TestCase):
     """Test suite validating Section 25 / Step 24 Document Intelligence."""
+
+    def setUp(self):
+        """Set up an isolated in-memory SQLite database for test runs."""
+        self.engine = create_engine(
+            "sqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        self.TestingSessionLocal = sessionmaker(
+            autocommit=False,
+            autoflush=False,
+            bind=self.engine,
+        )
+        Base.metadata.create_all(bind=self.engine)
+        self.db = self.TestingSessionLocal()
+
+        def override_get_db():
+            db = self.TestingSessionLocal()
+            try:
+                yield db
+            finally:
+                db.close()
+
+        app.dependency_overrides[get_db] = override_get_db
+        self.client = TestClient(app)
+
+    def tearDown(self):
+        """Clean up in-memory database and dependency overrides."""
+        self.db.close()
+        Base.metadata.drop_all(bind=self.engine)
+        app.dependency_overrides.clear()
 
     def test_document_package_structure(self):
         """Confirm all mandated document intelligence packages and modules exist."""
@@ -408,6 +449,52 @@ FortiOS 7.4, FortiOS 7.2, FortiOS 7.0.
 
         health = connector.health_check()
         self.assertEqual(health.status, "ok")
+
+    def test_api_process_document_endpoint(self):
+        """Verify POST /api/v1/documents/process returns structured intelligence."""
+        client = self.client
+        doc_payload = {
+            "content": "# CISA Alert: Akira Ransomware Tactics\n\n## Overview\nAkira ransomware targeting Cisco ASA devices.\n\n## IOCs\nC2: 198.51.100.99",
+            "filename": "akira_alert.md",
+            "doc_type": "markdown",
+            "save_to_db": False,
+        }
+        resp = client.post("/api/v1/documents/process", json=doc_payload)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+
+        self.assertIn("Akira Ransomware", data["metadata"]["title"])
+        self.assertEqual(data["metadata"]["document_type"], "markdown")
+        self.assertGreaterEqual(data["chunks_count"], 2)
+        self.assertTrue(any("Overview" in c["heading"] for c in data["chunks"]))
+        self.assertTrue(all(c["has_embedding"] for c in data["chunks"]))
+
+    def test_api_process_and_save_to_db(self):
+        """Verify POST /api/v1/documents/process with save_to_db persists and allows chunk lookup."""
+        client = self.client
+        doc_payload = {
+            "content": "# NIST SP 800-53 Rev 5 Security Controls\nAuthor: NIST\n\n## Access Control\nAC-1 policy and procedures.\n\n## Audit and Accountability\nAU-1 logging standards.",
+            "filename": "sp800-53.md",
+            "doc_type": "markdown",
+            "save_to_db": True,
+        }
+        resp = client.post("/api/v1/documents/process", json=doc_payload)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        content_id = data.get("content_id")
+        self.assertIsNotNone(content_id)
+
+        # Confirm listing
+        list_resp = client.get("/api/v1/documents")
+        self.assertEqual(list_resp.status_code, 200)
+        docs = list_resp.json()
+        self.assertTrue(any(d["id"] == content_id for d in docs))
+
+        # Confirm chunks endpoint
+        chunks_resp = client.get(f"/api/v1/documents/{content_id}/chunks")
+        self.assertEqual(chunks_resp.status_code, 200)
+        chunks = chunks_resp.json()
+        self.assertGreaterEqual(len(chunks), 2)
 
 
 if __name__ == "__main__":
