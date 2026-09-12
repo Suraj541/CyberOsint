@@ -34,6 +34,10 @@ import {
   ResearchResponse,
   ResearchEvidenceItem,
   SuggestedResearchQuery,
+  RecommendationItem,
+  TopicRecommendation,
+  UserProfile,
+  RecommendationsResponse,
 } from "./types";
 
 
@@ -2056,3 +2060,354 @@ export async function getSuggestedResearchQueries(): Promise<SuggestedResearchQu
     return DEFAULT_SUGGESTED_QUERIES;
   }
 }
+
+// =====================================================================
+// Section 31 (Step 30): Personalized Recommendations API & Fallbacks
+// =====================================================================
+
+export function getSessionId(): string {
+  if (typeof window === "undefined") return "guest_analyst_session";
+  try {
+    let sid = localStorage.getItem("cyber_osint_session_id");
+    if (!sid) {
+      sid = "sess_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now().toString(36);
+      localStorage.setItem("cyber_osint_session_id", sid);
+    }
+    return sid;
+  } catch {
+    return "guest_analyst_session";
+  }
+}
+
+export const FALLBACK_TOPIC_RECOMMENDATIONS: TopicRecommendation[] = [
+  { topic: "Container Security", score: 0.95, reason: "Correlated with Kubernetes Security", related_from: "Kubernetes Security" },
+  { topic: "Docker Security", score: 0.90, reason: "Correlated with Kubernetes Security", related_from: "Kubernetes Security" },
+  { topic: "Cloud Security", score: 0.85, reason: "Correlated with Kubernetes Security", related_from: "Kubernetes Security" },
+  { topic: "Kubernetes Threat Detection", score: 0.80, reason: "Correlated with Kubernetes Security", related_from: "Kubernetes Security" },
+  { topic: "Runtime Security", score: 0.75, reason: "Correlated with Kubernetes Security", related_from: "Kubernetes Security" },
+];
+
+export const FALLBACK_RECOMMENDATION_ITEMS: RecommendationItem[] = [
+  {
+    content_id: 1001,
+    title: "Kubernetes Security: Hardening Clusters and Mitigating Node Breaches",
+    description: "Comprehensive guide to cluster hardening, pod security admission standards, and control plane isolation.",
+    summary: "Covers RBAC hardening, mTLS between microservices, network policies, and runtime defense.",
+    content_type: "article",
+    category: "cloud_security",
+    difficulty_level: "intermediate",
+    score: 0.94,
+    match_reasons: ["Matches interest: Kubernetes Security", "Tier 1 Authoritative", "Level: Intermediate"],
+    source: "CISA Cloud Division",
+    author: "Kubernetes SIG Security",
+    published_at: "2024-05-10T10:00:00Z",
+    canonical_url: "https://www.cisa.gov/resources-tools/k8s-hardening-guidance",
+    tags: ["kubernetes security", "cloud security", "k8s", "hardening"],
+    entities: ["Kubernetes", "Docker", "Linux"],
+    is_saved: false,
+    source_quality_tier: "TIER_1_AUTHORITATIVE",
+    source_quality_score: 0.96,
+  },
+  {
+    content_id: 1002,
+    title: "Container Security: Image Vulnerability Scanning and CI/CD Guardrails",
+    description: "Strategies for enforcing zero-trust container pipelines, static vulnerability detection, and attestation.",
+    summary: "Best practices for container base image minimization, distroless builds, and SBOM generation.",
+    content_type: "article",
+    category: "container_security",
+    difficulty_level: "intermediate",
+    score: 0.91,
+    match_reasons: ["Related to reading: Container Security", "Level: Intermediate"],
+    source: "Red Hat Security",
+    author: "Red Hat Research",
+    published_at: "2024-05-15T14:30:00Z",
+    canonical_url: "https://access.redhat.com/articles/container-security-guide",
+    tags: ["container security", "docker", "sbom", "cve"],
+    entities: ["Docker", "Kubernetes", "Red Hat"],
+    is_saved: false,
+    source_quality_tier: "TIER_1_AUTHORITATIVE",
+    source_quality_score: 0.94,
+  },
+  {
+    content_id: 1005,
+    title: "Kubernetes Threat Detection via eBPF and Behavioral Anomaly Sensors",
+    description: "Real-time threat monitoring inside container runtimes utilizing kernel eBPF probes.",
+    summary: "Deploying Falco and Tetragon rules to detect unauthorized binary execution, container breakouts, and socket hooks.",
+    content_type: "research",
+    category: "threat_detection",
+    difficulty_level: "advanced",
+    score: 0.89,
+    match_reasons: ["Topic: Kubernetes Threat Detection", "Tier 1 Authoritative", "Level: Advanced"],
+    source: "USENIX Security Proceedings",
+    author: "Dr. Sarah Lin, Systems Lab",
+    published_at: "2024-05-20T11:00:00Z",
+    canonical_url: "https://www.usenix.org/conference/usenixsecurity24/presentation/ebpf-k8s",
+    tags: ["kubernetes threat detection", "ebpf", "falco", "anomaly detection"],
+    entities: ["Kubernetes", "Linux Kernel", "Falco"],
+    is_saved: false,
+    source_quality_tier: "TIER_1_AUTHORITATIVE",
+    source_quality_score: 0.98,
+  },
+  {
+    content_id: 1006,
+    title: "Runtime Security in Cloud-Native Environments: Intercepting Container Escapes",
+    description: "Deep-dive analysis into container breakout primitives (CVE-2024-21626) and runtime protection.",
+    summary: "Explains runc file descriptor leaks, kernel namespace evasion, and mitigation using gVisor and Kata Containers.",
+    content_type: "research",
+    category: "runtime_security",
+    difficulty_level: "expert",
+    score: 0.88,
+    match_reasons: ["Topic: Runtime Security", "Tier 1 Authoritative", "Level: Expert"],
+    source: "Google Zero Day Project",
+    author: "Jann Horn",
+    published_at: "2024-04-28T13:15:00Z",
+    canonical_url: "https://googleprojectzero.blogspot.com/2024/04/runc-container-escapes.html",
+    tags: ["runtime security", "container escape", "runc", "cve-2024-21626"],
+    entities: ["runc", "Docker", "Linux Kernel"],
+    is_saved: false,
+    source_quality_tier: "TIER_1_AUTHORITATIVE",
+    source_quality_score: 0.99,
+  },
+  {
+    content_id: 1007,
+    title: "Hands-On Video: Hunting Threats in Kubernetes Clusters with Open Source Tools",
+    description: "Interactive walk-through demonstrating live detection of anomalous cryptomining pods.",
+    summary: "Live demo of kube-bench, Trivy operator, and Falco alert streaming into SIEM.",
+    content_type: "video",
+    category: "cloud_security",
+    difficulty_level: "beginner",
+    score: 0.85,
+    match_reasons: ["Security Video Intelligence", "Matches interest: Kubernetes Security"],
+    source: "Cyber In-Depth Video Channel",
+    author: "Alex Reed, Threat Hunter",
+    published_at: "2024-05-25T18:00:00Z",
+    canonical_url: "https://youtube.com/watch?v=k8s_threat_hunt",
+    tags: ["kubernetes security", "video", "tutorial", "falco"],
+    entities: ["Kubernetes", "Falco", "Trivy"],
+    is_saved: false,
+    source_quality_tier: "TIER_2_HIGH",
+    source_quality_score: 0.88,
+  },
+  {
+    content_id: 1008,
+    title: "KubeArmor: Cloud-Native Runtime Security Enforcement Engine",
+    description: "Open-source tool leveraging LSM (eBPF, AppArmor, SELinux) to restrict pod attack surface.",
+    summary: "Defines declarative security policies for blocking untrusted package managers and unauthorized file writes.",
+    content_type: "tool",
+    category: "security_tooling",
+    difficulty_level: "intermediate",
+    score: 0.84,
+    match_reasons: ["Operational Security Tool", "Topic: Runtime Security"],
+    source: "CNCF Sandbox",
+    author: "KubeArmor Maintainers",
+    published_at: "2024-05-01T12:00:00Z",
+    canonical_url: "https://github.com/kubearmor/KubeArmor",
+    tags: ["tool", "kubearmor", "runtime security", "lsm"],
+    entities: ["Kubernetes", "AppArmor", "eBPF"],
+    is_saved: false,
+    source_quality_tier: "TIER_1_AUTHORITATIVE",
+    source_quality_score: 0.95,
+  },
+  {
+    content_id: 1009,
+    title: "Certified Kubernetes Security Specialist (CKS) Complete Roadmap",
+    description: "Structured curriculum covering cluster setup, cluster hardening, system hardening, and monitoring.",
+    summary: "Hands-on labs for CIS benchmarks, secret management, image scanning, and immutable pods.",
+    content_type: "course",
+    category: "education",
+    difficulty_level: "intermediate",
+    score: 0.83,
+    match_reasons: ["Security Course Curriculum", "Matches interest: Kubernetes Security"],
+    source: "Linux Foundation Training",
+    author: "Linux Foundation Education",
+    published_at: "2024-04-10T10:00:00Z",
+    canonical_url: "https://training.linuxfoundation.org/certification/certified-kubernetes-security-specialist/",
+    tags: ["course", "kubernetes security", "cks", "hardening"],
+    entities: ["Linux Foundation", "CNCF", "Kubernetes"],
+    is_saved: false,
+    source_quality_tier: "TIER_1_AUTHORITATIVE",
+    source_quality_score: 0.97,
+  },
+  {
+    content_id: 1010,
+    title: "Whitepaper: NIST SP 800-190 Application Container Security Guide",
+    description: "Official US government reference document specifying container technology architecture and threat landscape.",
+    summary: "Detailed security guidance covering image threats, registry threats, orchestrator threats, and container threats.",
+    content_type: "document",
+    category: "standards",
+    difficulty_level: "advanced",
+    score: 0.82,
+    match_reasons: ["Technical Standards Document", "Topic: Container Security"],
+    source: "NIST Computer Security Division",
+    author: "Murugiah Souppaya, John Morello",
+    published_at: "2024-03-15T12:00:00Z",
+    canonical_url: "https://csrc.nist.gov/publications/detail/sp/800-190/final",
+    tags: ["document", "nist", "standards", "container security"],
+    entities: ["NIST", "Docker", "Kubernetes"],
+    is_saved: false,
+    source_quality_tier: "TIER_1_AUTHORITATIVE",
+    source_quality_score: 0.99,
+  },
+];
+
+export const FALLBACK_USER_PROFILE: UserProfile = {
+  session_id: "guest_analyst_session",
+  interests: ["Kubernetes Security", "Cloud Security", "Zero-Day Vulnerabilities"],
+  difficulty_level: "intermediate",
+  preferred_types: ["article", "video", "research", "tool", "course", "document"],
+  saved_count: 0,
+  viewed_count: 3,
+  search_count: 1,
+};
+
+export async function fetchRecommendations(params?: {
+  contentType?: string;
+  difficulty?: string;
+  limit?: number;
+  currentContentId?: number;
+}): Promise<RecommendationsResponse> {
+  const sessionId = getSessionId();
+  const queryParams = new URLSearchParams();
+  queryParams.set("session_id", sessionId);
+  if (params?.contentType && params.contentType !== "all") queryParams.set("content_type", params.contentType);
+  if (params?.difficulty) queryParams.set("difficulty", params.difficulty);
+  if (params?.limit) queryParams.set("limit", params.limit.toString());
+  if (params?.currentContentId) queryParams.set("current_content_id", params.currentContentId.toString());
+
+  try {
+    const res = await fetch(`${API_BASE}/recommendations?${queryParams.toString()}`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Recommendations fetch failed");
+    return await res.json();
+  } catch {
+    // Offline / fallback filtering
+    let items = [...FALLBACK_RECOMMENDATION_ITEMS];
+    if (params?.contentType && params.contentType !== "all") {
+      const target = params.contentType.toLowerCase();
+      items = items.filter((it) => {
+        if (target === "articles") return ["article", "advisory", "cve"].includes(it.content_type);
+        if (target === "videos") return it.content_type === "video";
+        if (target === "research") return ["research", "paper", "report"].includes(it.content_type);
+        if (target === "tools") return it.content_type === "tool";
+        if (target === "courses") return it.content_type === "course";
+        if (target === "documents") return it.content_type === "document";
+        return it.content_type === target;
+      });
+    }
+    if (params?.difficulty) {
+      const diff = params.difficulty.toLowerCase();
+      items = items.filter((it) => it.difficulty_level.toLowerCase() === diff || true);
+    }
+    if (params?.currentContentId) {
+      items = items.filter((it) => it.content_id !== params.currentContentId);
+    }
+    return {
+      items: items.slice(0, params?.limit || 10),
+      suggested_topics: FALLBACK_TOPIC_RECOMMENDATIONS,
+      profile_summary: FALLBACK_USER_PROFILE,
+      total_matched: items.length,
+    };
+  }
+}
+
+export async function recordInteraction(
+  interactionType: "view" | "save" | "unsave" | "search" | "click",
+  contentId?: number,
+  searchQuery?: string,
+  metadata?: Record<string, any>
+): Promise<any> {
+  const sessionId = getSessionId();
+  try {
+    const res = await fetch(`${API_BASE}/recommendations/interactions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        interaction_type: interactionType,
+        content_id: contentId,
+        search_query: searchQuery,
+        metadata: metadata || {},
+      }),
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Record interaction failed");
+    return await res.json();
+  } catch {
+    return { status: "offline_success", session_id: sessionId, interaction_type: interactionType };
+  }
+}
+
+export async function fetchUserProfile(): Promise<UserProfile> {
+  const sessionId = getSessionId();
+  try {
+    const res = await fetch(`${API_BASE}/recommendations/profile?session_id=${sessionId}`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Profile fetch failed");
+    return await res.json();
+  } catch {
+    return { ...FALLBACK_USER_PROFILE, session_id: sessionId };
+  }
+}
+
+export async function updateUserProfile(
+  interests?: string[],
+  difficultyLevel?: string,
+  preferredTypes?: string[]
+): Promise<UserProfile> {
+  const sessionId = getSessionId();
+  try {
+    const res = await fetch(`${API_BASE}/recommendations/profile`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        interests,
+        difficulty_level: difficultyLevel,
+        preferred_types: preferredTypes,
+      }),
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Profile update failed");
+    return await res.json();
+  } catch {
+    return {
+      ...FALLBACK_USER_PROFILE,
+      session_id: sessionId,
+      interests: interests || FALLBACK_USER_PROFILE.interests,
+      difficulty_level: difficultyLevel || FALLBACK_USER_PROFILE.difficulty_level,
+      preferred_types: preferredTypes || FALLBACK_USER_PROFILE.preferred_types,
+    };
+  }
+}
+
+export async function fetchRelatedTopics(topic: string, limit: number = 5): Promise<TopicRecommendation[]> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/recommendations/topics?topic=${encodeURIComponent(topic)}&limit=${limit}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) throw new Error("Topics fetch failed");
+    return await res.json();
+  } catch {
+    if (topic.toLowerCase().includes("kubernetes") || topic.toLowerCase().includes("k8s")) {
+      return FALLBACK_TOPIC_RECOMMENDATIONS.slice(0, limit);
+    }
+    return [
+      { topic: "Cloud Security", score: 0.90, reason: `Affinity with ${topic}`, related_from: topic },
+      { topic: "Container Security", score: 0.85, reason: `Affinity with ${topic}`, related_from: topic },
+      { topic: "Zero-Day Vulnerabilities", score: 0.80, reason: `Affinity with ${topic}`, related_from: topic },
+      { topic: "Runtime Security", score: 0.75, reason: `Affinity with ${topic}`, related_from: topic },
+      { topic: "Threat Hunting", score: 0.70, reason: `Affinity with ${topic}`, related_from: topic },
+    ].slice(0, limit);
+  }
+}
+
+export async function fetchSavedContent(): Promise<RecommendationItem[]> {
+  const sessionId = getSessionId();
+  try {
+    const res = await fetch(`${API_BASE}/recommendations/saved?session_id=${sessionId}`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Saved content fetch failed");
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+

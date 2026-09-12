@@ -17,6 +17,7 @@ from app.api.v1.endpoints import (
     health,
     mitre,
     queue,
+    recommendations,
     research,
     scheduler,
     search,
@@ -36,6 +37,9 @@ api_router.include_router(sources.router)
 
 # Normalized content endpoints
 api_router.include_router(content.router)
+
+# Personalized Recommendations endpoints (Section 31)
+api_router.include_router(recommendations.router)
 
 # AI Summarization endpoints (Section 29)
 api_router.include_router(summaries.router)

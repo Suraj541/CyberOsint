@@ -511,3 +511,51 @@ export interface SuggestedResearchQuery {
   category: string;
   suggested_entities: string[];
 }
+
+// Section 31 (Step 30): Personalized Recommendations Interfaces
+export interface RecommendationItem {
+  content_id: number;
+  title: string;
+  description?: string;
+  summary?: string;
+  canonical_url: string;
+  content_type: string;
+  category?: string;
+  difficulty_level: "beginner" | "intermediate" | "advanced" | "expert" | string;
+  score: number;
+  match_reasons: string[];
+  source: string;
+  author?: string;
+  published_at?: string;
+  tags?: string[];
+  entities?: string[];
+  is_saved: boolean;
+  source_quality_tier?: string;
+  source_quality_score?: number;
+}
+
+export interface TopicRecommendation {
+  topic: string;
+  score: number;
+  reason: string;
+  related_from?: string;
+}
+
+export interface UserProfile {
+  session_id: string;
+  user_id?: number;
+  interests: string[];
+  difficulty_level: string;
+  preferred_types: string[];
+  saved_count: number;
+  viewed_count: number;
+  search_count: number;
+}
+
+export interface RecommendationsResponse {
+  items: RecommendationItem[];
+  suggested_topics: TopicRecommendation[];
+  profile_summary: UserProfile;
+  total_matched: number;
+}
+

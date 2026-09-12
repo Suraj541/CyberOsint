@@ -3,8 +3,21 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { fetchContentById, fetchRelatedContent, generateContentSummary, getContentSummary } from "../../../lib/api";
-import { ContentItem, ContentSummary } from "../../../lib/types";
+import {
+  fetchContentById,
+  fetchRelatedContent,
+  generateContentSummary,
+  getContentSummary,
+  fetchRecommendations,
+  fetchRelatedTopics,
+  recordInteraction,
+} from "../../../lib/api";
+import {
+  ContentItem,
+  ContentSummary,
+  RecommendationItem,
+  TopicRecommendation,
+} from "../../../lib/types";
 import { SeverityBadge } from "../../../components/SeverityBadge";
 import { ContentCard } from "../../../components/ContentCard";
 import { SourceQualityBadge } from "../../../components/SourceQualityBadge";
@@ -21,22 +34,42 @@ export default function ContentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
 
+  // Section 31 (Step 30): Recommendations & Bookmark State
+  const [isSaved, setIsSaved] = useState<boolean>(false);
+  const [relatedTopics, setRelatedTopics] = useState<TopicRecommendation[]>([]);
+  const [recommendedNext, setRecommendedNext] = useState<RecommendationItem[]>([]);
+
   useEffect(() => {
     async function loadItem() {
       setLoading(true);
       try {
-        const [target, relatedItems, aiSummary] = await Promise.all([
+        const [target, relatedItems, aiSummary, recFeed] = await Promise.all([
           fetchContentById(contentId),
           fetchRelatedContent(contentId),
           getContentSummary(contentId),
+          fetchRecommendations({ currentContentId: contentId, limit: 4 }),
         ]);
         setItem(target);
         setRelated(relatedItems);
+        setRecommendedNext(recFeed.items);
+
         if (target?.ai_summary) {
           setSummary(target.ai_summary);
         } else if (aiSummary) {
           setSummary(aiSummary);
         }
+
+        // Fetch semantic related topics matching target's title or primary tags
+        const seedTopic = target?.tags?.[0] || target?.title || "Kubernetes Security";
+        const topics = await fetchRelatedTopics(seedTopic, 5);
+        setRelatedTopics(topics);
+
+        // Section 31: Record viewing telemetry event
+        recordInteraction("view", contentId, undefined, {
+          title: target?.title,
+          category: target?.category,
+          content_type: target?.content_type,
+        });
       } finally {
         setLoading(false);
       }
@@ -45,6 +78,14 @@ export default function ContentDetailPage() {
       loadItem();
     }
   }, [contentId]);
+
+  const handleToggleSave = async () => {
+    const nextSaved = !isSaved;
+    setIsSaved(nextSaved);
+    await recordInteraction(nextSaved ? "save" : "unsave", contentId, undefined, {
+      title: item?.title,
+    });
+  };
 
   const handleRegenerateSummary = async () => {
     if (!contentId || regenerating) return;
@@ -110,14 +151,26 @@ export default function ContentDetailPage() {
           <span className="text-slate-600">ID #{item.id}</span>
         </div>
 
-        <a
-          href={item.canonical_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-cyan-400 hover:underline flex items-center gap-1 font-semibold"
-        >
-          Original Source Link &nearr;
-        </a>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleToggleSave}
+            className={`px-3 py-1 rounded-lg border text-xs font-mono transition-all flex items-center gap-1.5 ${
+              isSaved
+                ? "bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold"
+                : "bg-slate-900 text-slate-400 hover:text-amber-300 border-slate-800"
+            }`}
+          >
+            <span>{isSaved ? "★ Saved in Library" : "☆ Bookmark Intel"}</span>
+          </button>
+          <a
+            href={item.canonical_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-cyan-400 hover:underline flex items-center gap-1 font-semibold"
+          >
+            Original Source Link &nearr;
+          </a>
+        </div>
       </div>
 
       {/* Header Area */}
@@ -556,6 +609,92 @@ export default function ContentDetailPage() {
           <span>&nearr;</span>
         </a>
       </div>
+
+      {/* Section 31: Semantic Topic Exploration (Canonical Example: Kubernetes Security -> Container, Docker, Cloud, K8s Threat Detection, Runtime) */}
+      {relatedTopics && relatedTopics.length > 0 && (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border border-cyan-500/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-cyan-400 font-mono">◈</span>
+              <h3 className="text-xs font-mono uppercase tracking-wider text-slate-300 font-bold">
+                Semantic Topic Graph Recommendations
+              </h3>
+            </div>
+            <span className="text-[11px] font-mono text-cyan-400/80">Section 31 Knowledge Graph</span>
+          </div>
+
+          <p className="text-xs text-slate-400">
+            Based on this intelligence record, analysts also explore these correlated threat domains:
+          </p>
+
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {relatedTopics.map((top, idx) => (
+              <Link
+                key={idx}
+                href={`/search?q=${encodeURIComponent(top.topic)}`}
+                className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-cyan-500/50 hover:bg-cyan-500/10 text-xs font-mono transition-all flex items-center gap-2 group"
+              >
+                <span className="text-cyan-300 font-semibold group-hover:text-cyan-200">
+                  {top.topic}
+                </span>
+                <span className="text-[10px] text-cyan-500/60 font-mono">
+                  {(top.score * 100).toFixed(0)}%
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Section 31: Recommended Next Intelligence */}
+      {recommendedNext && recommendedNext.length > 0 && (
+        <div className="space-y-4 pt-6 border-t border-slate-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-bold">
+                  AI RECOMMENDATION ENGINE
+                </span>
+              </div>
+              <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                <span className="text-cyan-400 font-mono">⚡</span> Recommended Next to Read
+              </h2>
+            </div>
+            <span className="text-xs font-mono text-slate-500">
+              Personalized multi-factor scoring
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {recommendedNext.map((rec) => (
+              <Link
+                key={rec.content_id}
+                href={`/content/${rec.content_id}`}
+                className="p-4 rounded-xl cyber-card border border-slate-800 hover:border-cyan-500/50 transition-all block flex flex-col justify-between group"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-[10px] font-mono mb-2">
+                    <span className="uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                      {rec.content_type}
+                    </span>
+                    <span className="text-cyan-400">{rec.difficulty_level}</span>
+                  </div>
+                  <h4 className="text-xs font-bold text-white group-hover:text-cyan-300 line-clamp-2 mb-1.5 transition-colors">
+                    {rec.title}
+                  </h4>
+                  <p className="text-[11px] text-slate-400 line-clamp-2 mb-2">
+                    {rec.summary || rec.description}
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-500">
+                  <span className="truncate max-w-[100px]">{rec.source}</span>
+                  <span className="text-cyan-400 group-hover:underline">&rarr;</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Section 22: Related Content */}
       {related.length > 0 && (

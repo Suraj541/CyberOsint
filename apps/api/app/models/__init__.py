@@ -23,6 +23,7 @@ from app.models.mitre import (
 from app.models.graph import EntityRelationship
 from app.models.source_quality import SourceQuality
 from app.models.summary import ContentSummary
+from app.models.recommendation import UserProfile, UserInteraction
 
 
 __all__ = [
@@ -48,6 +49,8 @@ __all__ = [
     "EntityRelationship",
     "SourceQuality",
     "ContentSummary",
+    "UserProfile",
+    "UserInteraction",
 ]
 
 
