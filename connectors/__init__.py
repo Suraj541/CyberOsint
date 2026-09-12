@@ -11,6 +11,7 @@ from connectors.cve.connector import CVEConnector
 from connectors.github.connector import GitHubSecurityConnector
 from connectors.cert.connector import CERTConnector
 from connectors.video.connector import VideoConnector
+from connectors.document.connector import DocumentConnector
 
 __all__ = [
     "BaseConnector",
@@ -22,5 +23,6 @@ __all__ = [
     "GitHubSecurityConnector",
     "CERTConnector",
     "VideoConnector",
+    "DocumentConnector",
 ]
 

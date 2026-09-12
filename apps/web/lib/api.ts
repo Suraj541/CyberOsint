@@ -163,7 +163,7 @@ export const FALLBACK_CONTENT: ContentItem[] = [
     description: "Comprehensive regulatory whitepaper outlining the new GOVERN function and supply chain risk.",
     summary: "Guidance for enterprise CISOs transitioning governance frameworks to CSF 2.0 standards.",
     canonical_url: "https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf",
-    content_type: "advisory",
+    content_type: "document",
     source: "NIST Publications",
     category: "cloud_security",
     author: "NIST Cyber Division",
@@ -174,7 +174,179 @@ export const FALLBACK_CONTENT: ContentItem[] = [
     entities: [
       { entity_type: "vendor", name: "NIST", confidence: 0.99 },
     ],
+    document_metadata: {
+      document_type: "pdf",
+      authors: ["NIST Applied Cybersecurity Division", "Computer Security Resource Center"],
+      publication_date: "2024-03-15",
+      abstract: "The NIST Cybersecurity Framework (CSF) 2.0 provides guidance to industry, government agencies, and other organizations to manage cybersecurity risks.",
+      page_count: 32,
+      word_count: 14250,
+      file_size_bytes: 2451000,
+      section_headings: [
+        "Executive Summary",
+        "1. Overview & GOVERN Function",
+        "2. Core Framework & Categories",
+        "3. Supply Chain Risk Management",
+        "4. Implementation Tiers & Profiles"
+      ],
+      retention_mode: "full_text",
+      chunks_count: 5,
+      chunks_preview: [
+        {
+          chunk_index: 0,
+          heading: "Executive Summary",
+          text: "[Executive Summary] The CSF 2.0 expands scope from critical infrastructure to all organizations, establishing GOVERN as a foundational pillar.",
+        },
+        {
+          chunk_index: 1,
+          heading: "1. Overview & GOVERN Function",
+          text: "[1. Overview & GOVERN Function] Governance informs how an organization achieves outcomes across Identify, Protect, Detect, Respond, and Recover.",
+        },
+        {
+          chunk_index: 2,
+          heading: "3. Supply Chain Risk Management",
+          text: "[3. Supply Chain Risk Management] Integration of C-SCRM baseline controls for third-party software validation.",
+        }
+      ]
+    }
   },
+  {
+    id: 107,
+    title: "CISA Threat Analysis: LockBit 3.0 Ransomware Anatomy & Defense Playbook",
+    description: "Comprehensive technical bulletin detailing LockBit Black encryption procedures, privilege escalation, and network defense.",
+    summary: "Joint advisory detailing TTPs, affiliate infrastructure, and mitigation tactics against LockBit ransomware variants.",
+    canonical_url: "https://cisa.gov/advisories/aa23-075a-lockbit3",
+    content_type: "document",
+    source: "CISA Advisories",
+    category: "threat_intelligence",
+    author: "CISA Cybersecurity Division",
+    published_at: "2024-03-22T09:30:00Z",
+    severity: "CRITICAL",
+    cvss_score: 9.6,
+    tags: ["ransomware", "lockbit", "cisa", "playbook", "dfir"],
+    entities: [
+      { entity_type: "malware", name: "LockBit", confidence: 0.98 },
+      { entity_type: "technique", name: "T1486 - Data Encrypted for Impact", confidence: 0.97 },
+      { entity_type: "tool", name: "PsExec", confidence: 0.92 }
+    ],
+    document_metadata: {
+      document_type: "docx",
+      authors: ["CISA Cybersecurity Division", "Federal Bureau of Investigation", "MS-ISAC"],
+      publication_date: "2024-03-22",
+      abstract: "LockBit 3.0 (also known as LockBit Black) employs modular payloads, evasion techniques against endpoint telemetry, and multi-threaded encryption routines.",
+      page_count: 22,
+      word_count: 9800,
+      file_size_bytes: 1140000,
+      section_headings: [
+        "Executive Summary",
+        "Threat Actor Profile & Operations",
+        "Initial Access & Credential Harvesting",
+        "Execution & Cryptographic Implementation",
+        "Indicators of Compromise & MITRE ATT&CK Matrix"
+      ],
+      retention_mode: "full_text",
+      chunks_count: 6,
+      chunks_preview: [
+        {
+          chunk_index: 0,
+          heading: "Executive Summary",
+          text: "[Executive Summary] LockBit 3.0 operates as a Ransomware-as-a-Service model targeting critical infrastructure sectors worldwide.",
+        },
+        {
+          chunk_index: 1,
+          heading: "Execution & Cryptographic Implementation",
+          text: "[Execution & Cryptographic Implementation] Employs ChaCha20 symmetric stream cipher for high-speed file encryption coupled with RSA-4096 master key wrapping.",
+        }
+      ]
+    }
+  },
+  {
+    id: 108,
+    title: "Post-Quantum Cryptography Migration: Formal Security Verification of ML-KEM & ML-DSA",
+    description: "Academic whitepaper analyzing lattice-based post-quantum cryptography candidates against side-channel vulnerabilities.",
+    summary: "Cryptographic assessment of NIST FIPS 203 (ML-KEM) and FIPS 204 (ML-DSA) implementation boundaries.",
+    canonical_url: "https://eprint.iacr.org/2024/pqc-formal-verification.pdf",
+    content_type: "paper",
+    source: "IACR Cryptology ePrint Archive",
+    category: "cryptography",
+    author: "Dr. Elena Rostova",
+    published_at: "2024-04-02T14:00:00Z",
+    severity: "MEDIUM",
+    cvss_score: 5.2,
+    tags: ["pqc", "quantum-computing", "lattice-cryptography", "nist-fips", "research"],
+    entities: [
+      { entity_type: "technology", name: "ML-KEM", confidence: 0.95 },
+      { entity_type: "technology", name: "CRYSTALS-Kyber", confidence: 0.96 }
+    ],
+    document_metadata: {
+      document_type: "markdown",
+      authors: ["Dr. Elena Rostova", "Prof. Marcus Vance"],
+      publication_date: "2024-04-02",
+      abstract: "As standardized post-quantum schemes approach production deployment, automated formal verification is essential to preclude power analysis and timing leakages in polynomial multiplication.",
+      page_count: 16,
+      word_count: 7400,
+      file_size_bytes: 850000,
+      section_headings: [
+        "Abstract",
+        "1. Background on Module Lattices",
+        "2. Formal Verification Methodology",
+        "3. Constant-Time NTT Verification",
+        "4. Experimental Results & Benchmarks"
+      ],
+      retention_mode: "full_text",
+      chunks_count: 4,
+      chunks_preview: [
+        {
+          chunk_index: 0,
+          heading: "Abstract",
+          text: "[Abstract] Evaluation of timing side-channels in reference constant-time Number Theoretic Transform (NTT) implementations.",
+        }
+      ]
+    }
+  },
+  {
+    id: 109,
+    title: "Zero Trust Architecture: Enterprise Microsegmentation & Policy Engine Architecture",
+    description: "Technical briefing slides evaluating software-defined perimeter, mutual TLS, and continuous verification policy enforcement.",
+    summary: "Architecture slides mapping NIST SP 800-207 Zero Trust tenants to enterprise cloud workloads.",
+    canonical_url: "https://cyber-osint.local/docs/zero-trust-architecture.pptx",
+    content_type: "document",
+    source: "Cloud Security Alliance",
+    category: "cloud_security",
+    author: "CSA Research Working Group",
+    published_at: "2024-03-30T16:00:00Z",
+    severity: "INFO",
+    cvss_score: 0.0,
+    tags: ["zero-trust", "microsegmentation", "sp-800-207", "policy-engine"],
+    entities: [
+      { entity_type: "technology", name: "mTLS", confidence: 0.92 },
+      { entity_type: "technology", name: "Kubernetes", confidence: 0.94 }
+    ],
+    document_metadata: {
+      document_type: "pptx",
+      authors: ["CSA Research Working Group"],
+      publication_date: "2024-03-30",
+      abstract: "Architectural blueprint detailing policy decision point (PDP) and policy enforcement point (PEP) separation across multi-cloud infrastructure.",
+      page_count: 24,
+      word_count: 3600,
+      file_size_bytes: 3800000,
+      section_headings: [
+        "Slide 1: Zero Trust Core Tenants",
+        "Slide 6: Policy Decision Point & Policy Enforcement",
+        "Slide 14: Microsegmentation at Layer 4 and Layer 7",
+        "Slide 21: Phased Migration Roadmap"
+      ],
+      retention_mode: "full_text",
+      chunks_count: 4,
+      chunks_preview: [
+        {
+          chunk_index: 0,
+          heading: "Slide 1: Zero Trust Core Tenants",
+          text: "[Slide 1: Zero Trust Core Tenants] Never trust, always verify: explicit verification of identity, device health, and environmental context.",
+        }
+      ]
+    }
+  }
 ];
 
 export const FALLBACK_VULNERABILITIES: VulnerabilityItem[] = [

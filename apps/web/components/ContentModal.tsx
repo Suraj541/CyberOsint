@@ -141,6 +141,81 @@ export const ContentModal: React.FC<Props> = ({ item, onClose }) => {
             </div>
           )}
 
+          {/* Document Intelligence: Headings & Chunks (IMPLEMENT.md Section 25) */}
+          {item.document_metadata && (
+            <div className="p-4 rounded-xl bg-slate-950/90 border border-cyan-900/40 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider bg-cyan-950/80 text-cyan-300 border border-cyan-500/30">
+                    {item.document_metadata.document_type}
+                  </span>
+                  <h4 className="text-xs uppercase font-mono tracking-wider text-cyan-400 font-bold">
+                    Document Intelligence
+                  </h4>
+                </div>
+                <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
+                  {item.document_metadata.page_count && (
+                    <span>{item.document_metadata.page_count} Pages</span>
+                  )}
+                  {item.document_metadata.word_count && (
+                    <span>{item.document_metadata.word_count.toLocaleString()} Words</span>
+                  )}
+                  <span className="px-1.5 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800 uppercase text-[10px]">
+                    {item.document_metadata.retention_mode || "full_text"}
+                  </span>
+                </div>
+              </div>
+
+              {item.document_metadata.authors && item.document_metadata.authors.length > 0 && (
+                <div className="text-xs text-slate-400">
+                  <span className="text-slate-500 font-mono">Authors: </span>
+                  <span className="text-slate-300">{item.document_metadata.authors.join(", ")}</span>
+                </div>
+              )}
+
+              {/* Section Outline */}
+              {item.document_metadata.section_headings && item.document_metadata.section_headings.length > 0 && (
+                <div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-1.5">
+                    Section Outline
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {item.document_metadata.section_headings.map((head, hIdx) => (
+                      <span
+                        key={hIdx}
+                        className="text-[11px] px-2 py-1 rounded bg-slate-900 text-slate-300 border border-slate-800 font-mono"
+                      >
+                        § {head}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Chunks Preview */}
+              {item.document_metadata.chunks_preview && item.document_metadata.chunks_preview.length > 0 && (
+                <div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-1.5">
+                    Semantic Document Chunks ({item.document_metadata.chunks_count || item.document_metadata.chunks_preview.length} total)
+                  </span>
+                  <div className="space-y-1.5">
+                    {item.document_metadata.chunks_preview.map((chk, cIdx) => (
+                      <div
+                        key={cIdx}
+                        className="p-2.5 rounded bg-slate-900/60 border border-slate-800/80 text-xs font-mono text-slate-300"
+                      >
+                        <span className="text-cyan-400 font-semibold block mb-0.5">
+                          Chunk {chk.chunk_index + 1}: {chk.heading}
+                        </span>
+                        <p className="text-slate-400 line-clamp-2">{chk.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Tags */}
           {item.tags && item.tags.length > 0 && (
             <div>

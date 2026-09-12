@@ -31,13 +31,37 @@ export interface VideoMetadata {
   has_transcript?: boolean;
 }
 
+export interface DocumentChunkItem {
+  chunk_index: number;
+  heading: string;
+  text: string;
+  char_start?: number;
+  char_end?: number;
+  page_number?: number;
+}
+
+export interface DocumentMetadata {
+  document_type: "pdf" | "html" | "markdown" | "txt" | "docx" | "pptx" | "unknown";
+  authors?: string[];
+  publication_date?: string;
+  abstract?: string;
+  page_count?: number;
+  word_count?: number;
+  file_size_bytes?: number;
+  section_headings?: string[];
+  copyright_notice?: string;
+  retention_mode?: "full_text" | "metadata_only" | "fair_use_summary";
+  chunks_count?: number;
+  chunks_preview?: DocumentChunkItem[];
+}
+
 export interface ContentItem {
   id: number;
   title: string;
   description?: string;
   summary?: string;
   canonical_url: string;
-  content_type: "article" | "cve" | "advisory" | "tool" | "video" | "paper" | "report";
+  content_type: "article" | "cve" | "advisory" | "tool" | "video" | "paper" | "report" | "document";
   source: string;
   category: string;
   author?: string;
@@ -49,6 +73,7 @@ export interface ContentItem {
   severity?: SeverityLevel;
   cvss_score?: number;
   video_metadata?: VideoMetadata;
+  document_metadata?: DocumentMetadata;
 }
 
 export interface VulnerabilityItem {
