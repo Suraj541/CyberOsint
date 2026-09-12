@@ -22,6 +22,7 @@ from app.models.mitre import (
 )
 from app.models.graph import EntityRelationship
 from app.models.source_quality import SourceQuality
+from app.models.summary import ContentSummary
 
 
 __all__ = [
@@ -46,6 +47,7 @@ __all__ = [
     "MitreRelationshipModel",
     "EntityRelationship",
     "SourceQuality",
+    "ContentSummary",
 ]
 
 

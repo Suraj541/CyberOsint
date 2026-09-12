@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { fetchContentById, fetchRelatedContent } from "../../../lib/api";
-import { ContentItem } from "../../../lib/types";
+import { fetchContentById, fetchRelatedContent, generateContentSummary, getContentSummary } from "../../../lib/api";
+import { ContentItem, ContentSummary } from "../../../lib/types";
 import { SeverityBadge } from "../../../components/SeverityBadge";
 import { ContentCard } from "../../../components/ContentCard";
 import { SourceQualityBadge } from "../../../components/SourceQualityBadge";
@@ -17,18 +17,26 @@ export default function ContentDetailPage() {
 
   const [item, setItem] = useState<ContentItem | null>(null);
   const [related, setRelated] = useState<ContentItem[]>([]);
+  const [summary, setSummary] = useState<ContentSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
     async function loadItem() {
       setLoading(true);
       try {
-        const [target, relatedItems] = await Promise.all([
+        const [target, relatedItems, aiSummary] = await Promise.all([
           fetchContentById(contentId),
           fetchRelatedContent(contentId),
+          getContentSummary(contentId),
         ]);
         setItem(target);
         setRelated(relatedItems);
+        if (target?.ai_summary) {
+          setSummary(target.ai_summary);
+        } else if (aiSummary) {
+          setSummary(aiSummary);
+        }
       } finally {
         setLoading(false);
       }
@@ -37,6 +45,21 @@ export default function ContentDetailPage() {
       loadItem();
     }
   }, [contentId]);
+
+  const handleRegenerateSummary = async () => {
+    if (!contentId || regenerating) return;
+    setRegenerating(true);
+    try {
+      const updated = await generateContentSummary(contentId, true);
+      if (updated) {
+        setSummary(updated);
+      }
+    } catch (err) {
+      console.error("Failed to regenerate summary:", err);
+    } finally {
+      setRegenerating(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -143,14 +166,191 @@ export default function ContentDetailPage() {
         </div>
       </div>
 
-      {/* Section 22: Summary Component */}
-      <div className="space-y-3">
-        <h2 className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold flex items-center gap-2">
-          <span>◈</span> Executive Intelligence Summary
-        </h2>
-        <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-slate-200 text-base leading-relaxed backdrop-blur-md shadow-lg">
-          {item.summary || item.description || "No analytical summary generated."}
+      {/* Section 29: AI Grounded Executive Intelligence Summary */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <span className="text-cyan-400 font-mono text-base">◈</span>
+            <h2 className="text-sm font-mono uppercase tracking-wider text-white font-bold">
+              AI Grounded Executive Summary
+            </h2>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 uppercase font-semibold">
+              Grounded NLP
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {summary && (
+              <>
+                <span className="text-[11px] font-mono px-2.5 py-1 rounded bg-slate-900 text-slate-300 border border-slate-700">
+                  Model: <span className="text-cyan-400">{summary.model}</span> ({summary.model_version})
+                </span>
+                <span className="text-[11px] font-mono px-2.5 py-1 rounded bg-slate-900 text-slate-300 border border-slate-700">
+                  Prompt: <span className="text-violet-400">{summary.prompt_version}</span>
+                </span>
+                <span
+                  className={`text-[11px] font-mono px-2.5 py-1 rounded border font-semibold ${
+                    summary.validation_status === "passed"
+                      ? "bg-emerald-950/50 text-emerald-300 border-emerald-500/30"
+                      : "bg-amber-950/50 text-amber-300 border-amber-500/30"
+                  }`}
+                >
+                  Validation: {summary.validation_status.toUpperCase()} ({(summary.validation_score * 100).toFixed(0)}%)
+                </span>
+                <span className="text-[11px] font-mono px-2.5 py-1 rounded bg-slate-900 text-emerald-400 border border-slate-700">
+                  {(summary.confidence * 100).toFixed(0)}% Conf.
+                </span>
+              </>
+            )}
+
+            <button
+              onClick={handleRegenerateSummary}
+              disabled={regenerating}
+              className="px-3 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30 text-xs font-mono font-medium flex items-center gap-1.5 transition-all disabled:opacity-50"
+            >
+              <span className={regenerating ? "animate-spin inline-block" : ""}>⟳</span>
+              <span>{regenerating ? "Synthesizing..." : summary ? "Regenerate" : "Generate Summary"}</span>
+            </button>
+          </div>
         </div>
+
+        {summary ? (
+          <div className="p-6 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-950 border border-slate-700/80 backdrop-blur-md shadow-xl space-y-6">
+            {/* Core Grounded Narrative */}
+            <div className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans border-b border-slate-800 pb-5">
+              {summary.executive_summary}
+            </div>
+
+            {/* Strict Guardrail Separation: Reported Facts vs Analytical Inferences */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Reported Facts Box (Rule 1, 2, 5) */}
+              <div className="p-4 rounded-xl bg-slate-950/70 border border-emerald-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-emerald-400 uppercase tracking-wide">
+                    <span>✓</span>
+                    <span>Verified Reported Facts</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/20">
+                    Source-Grounded
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Verifiable technical data extracted directly from primary reporting without alteration.
+                </p>
+                <ul className="space-y-2 text-xs text-slate-300 font-sans">
+                  {summary.reported_facts && summary.reported_facts.length > 0 ? (
+                    summary.reported_facts.map((fact, fIdx) => (
+                      <li key={fIdx} className="flex items-start gap-2">
+                        <span className="text-emerald-400 mt-0.5 shrink-0">•</span>
+                        <span>{fact}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-slate-500 italic">No isolated fact points cataloged.</li>
+                  )}
+                </ul>
+              </div>
+
+              {/* Analytical Inferences Box (Rule 5) */}
+              <div className="p-4 rounded-xl bg-slate-950/70 border border-purple-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-purple-400 uppercase tracking-wide">
+                    <span>✦</span>
+                    <span>Analytical Inferences</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950/60 text-purple-300 border border-purple-500/20">
+                    Interpretation
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Model-derived risk projections and tactical implications separated from direct observations.
+                </p>
+                <ul className="space-y-2 text-xs text-slate-300 font-sans">
+                  {summary.inferences && summary.inferences.length > 0 ? (
+                    summary.inferences.map((inf, iIdx) => (
+                      <li key={iIdx} className="flex items-start gap-2">
+                        <span className="text-purple-400 mt-0.5 shrink-0">•</span>
+                        <span>{inf}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-slate-500 italic">No analytical projections formulated.</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+
+            {/* Preserved Uncertainties (Rule 3) */}
+            {summary.uncertainties && summary.uncertainties.length > 0 && (
+              <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 flex items-start gap-3">
+                <span className="text-amber-400 text-sm font-bold font-mono shrink-0 mt-0.5">⚠</span>
+                <div className="space-y-1.5 w-full">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wide">
+                      Preserved Uncertainties & Unverified Claims
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-500/30">
+                      Rule 3 Active
+                    </span>
+                  </div>
+                  <ul className="space-y-1 text-xs text-slate-300">
+                    {summary.uncertainties.map((unc, uIdx) => (
+                      <li key={uIdx} className="flex items-start gap-2">
+                        <span className="text-amber-400 shrink-0">&rarr;</span>
+                        <span>{unc}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Key Takeaways */}
+            {summary.key_takeaways && summary.key_takeaways.length > 0 && (
+              <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                <span className="text-xs font-mono uppercase text-slate-400 font-bold block">
+                  Actionable Takeaways
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {summary.key_takeaways.map((takeaway, tIdx) => (
+                    <span
+                      key={tIdx}
+                      className="px-3 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 text-xs font-mono"
+                    >
+                      {takeaway}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Attribution & Provenance Footer (Rule 4) */}
+            <div className="pt-3 border-t border-slate-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] font-mono text-slate-500 gap-2">
+              <div>
+                Attributed Source: <span className="text-cyan-400 font-semibold">{summary.source_attribution || item.source}</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-500">
+                <span>Generated: {new Date(summary.generated_at).toLocaleString()}</span>
+                <span>•</span>
+                <span>Strict 5-Rule Grounding Enforced</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-slate-200 text-base leading-relaxed backdrop-blur-md shadow-lg space-y-4">
+            <p>{item.summary || item.description || "No analytical summary generated."}</p>
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+              <span>Standard raw ingestion summary</span>
+              <button
+                onClick={handleRegenerateSummary}
+                disabled={regenerating}
+                className="px-3 py-1 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-bold border border-cyan-500/40 transition-colors"
+              >
+                {regenerating ? "Generating..." : "⚡ Generate Grounded AI Summary"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Detailed Content / Context */}

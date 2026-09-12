@@ -21,6 +21,7 @@ from app.api.v1.endpoints import (
     search,
     semantic,
     sources,
+    summaries,
     taxonomy,
 )
 
@@ -34,6 +35,9 @@ api_router.include_router(sources.router)
 
 # Normalized content endpoints
 api_router.include_router(content.router)
+
+# AI Summarization endpoints (Section 29)
+api_router.include_router(summaries.router)
 
 # Document Intelligence endpoints (Section 25)
 api_router.include_router(documents.router)

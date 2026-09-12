@@ -12,6 +12,12 @@ from app.database import get_db
 from app.models.content import Content
 from app.models.source import Source
 from app.schemas.content import ContentDetailResponse, ContentEntityDetail, ContentResponse
+from app.schemas.summary import (
+    ContentSummaryOut,
+    SummaryGenerateRequest,
+    SummaryGenerateResponse,
+)
+from services.summarization.service import summarization_service
 
 router = APIRouter(prefix="/content", tags=["Content"])
 
@@ -153,6 +159,7 @@ def get_content_detail(
         video_metadata=video_meta,
         document_metadata=document_meta,
         raw_content=content.raw_content,
+        ai_summary=ContentSummaryOut.model_validate(content.ai_summary) if content.ai_summary else None,
         created_at=content.created_at,
         updated_at=content.updated_at,
     )
@@ -227,3 +234,56 @@ def get_related_content(
         related.extend(backfill)
 
     return related
+
+
+@router.get(
+    "/{content_id}/summary",
+    response_model=ContentSummaryOut,
+    status_code=status.HTTP_200_OK,
+    summary="Get Content AI Summary",
+)
+def get_content_ai_summary(
+    content_id: int,
+    db: Session = Depends(get_db),
+) -> ContentSummaryOut:
+    """Retrieve AI executive summary for specific content ID."""
+    summary = summarization_service.get_content_summary(db, content_id)
+    if not summary:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"AI summary for content {content_id} not found",
+        )
+    return ContentSummaryOut.model_validate(summary)
+
+
+@router.post(
+    "/{content_id}/summary/generate",
+    response_model=SummaryGenerateResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Generate or Regenerate Content AI Summary",
+)
+def generate_content_ai_summary(
+    content_id: int,
+    payload: Optional[SummaryGenerateRequest] = None,
+    db: Session = Depends(get_db),
+) -> SummaryGenerateResponse:
+    """Trigger 5-stage AI summarization for content ID."""
+    force = payload.force if payload else False
+    content = db.query(Content).filter(Content.id == content_id).first()
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Content with id {content_id} not found",
+        )
+    try:
+        record = summarization_service.summarize_content(db, content_id, force=force)
+        return SummaryGenerateResponse(
+            status="success",
+            content_id=content_id,
+            summary=ContentSummaryOut.model_validate(record),
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate summary: {str(exc)}",
+        )

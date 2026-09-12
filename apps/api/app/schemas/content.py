@@ -82,6 +82,9 @@ class DocumentMetadataSchema(BaseModel):
     retention_mode: str = "full_text"
 
 
+from app.schemas.summary import ContentSummaryOut
+
+
 class ContentDetailResponse(ContentResponse):
     """Extended content schema including linked tags, entities, category, and source metadata."""
 
@@ -92,3 +95,4 @@ class ContentDetailResponse(ContentResponse):
     video_metadata: Optional[VideoMetadataSchema] = None
     document_metadata: Optional[DocumentMetadataSchema] = None
     raw_content: Optional[str] = None
+    ai_summary: Optional[ContentSummaryOut] = None

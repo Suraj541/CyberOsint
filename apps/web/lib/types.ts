@@ -75,6 +75,7 @@ export interface ContentItem {
   video_metadata?: VideoMetadata;
   document_metadata?: DocumentMetadata;
   source_quality?: SourceQuality;
+  ai_summary?: ContentSummary;
 }
 
 export interface VulnerabilityItem {
@@ -426,4 +427,27 @@ export interface SourceQuality {
   indicator_symbol: string;
   eval_metadata?: Record<string, any>;
   disclaimer: string;
+}
+
+// --------------------------------------------------------------------------
+// AI Summarization Interfaces (IMPLEMENT.md Section 29)
+// --------------------------------------------------------------------------
+
+export interface ContentSummary {
+  id: number;
+  content_id: number;
+  executive_summary: string;
+  reported_facts: string[];
+  inferences: string[];
+  uncertainties: string[];
+  key_takeaways: string[];
+  source_attribution?: string;
+  model: string;
+  model_version: string;
+  prompt_version: string;
+  generated_at: string;
+  confidence: number;
+  validation_status: "passed" | "flagged" | "rejected" | string;
+  validation_score: number;
+  validation_notes?: Record<string, any>;
 }

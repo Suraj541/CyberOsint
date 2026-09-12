@@ -30,6 +30,7 @@ import {
   RelationshipCreateInput,
   RelationshipItem,
   SourceQuality,
+  ContentSummary,
 } from "./types";
 
 
@@ -706,7 +707,11 @@ export async function fetchContentById(id: number): Promise<ContentItem | null> 
     return data;
   } catch {
     const found = FALLBACK_CONTENT.find((c) => c.id === id);
-    return found || FALLBACK_CONTENT[0];
+    const item = found ? { ...found } : { ...FALLBACK_CONTENT[0] };
+    if (!item.ai_summary && FALLBACK_CONTENT_SUMMARIES[item.id]) {
+      item.ai_summary = FALLBACK_CONTENT_SUMMARIES[item.id];
+    }
+    return item;
   }
 }
 
@@ -1787,5 +1792,80 @@ export async function recalculateAllSourceQualities(): Promise<{
       recalculated_count: Object.keys(FALLBACK_SOURCE_QUALITIES).length,
       qualities: Object.values(FALLBACK_SOURCE_QUALITIES),
     };
+  }
+}
+
+// --------------------------------------------------------------------------
+// AI Summarization API Endpoints & Fallback Data (IMPLEMENT.md Section 29)
+// --------------------------------------------------------------------------
+
+export const FALLBACK_CONTENT_SUMMARIES: Record<number, ContentSummary> = {
+  101: {
+    id: 1,
+    content_id: 101,
+    executive_summary:
+      "According to intelligence published by CISA, critical command injection vulnerability CVE-2024-3400 in PAN-OS GlobalProtect appliances is subject to active zero-day exploitation.\n\nFactual reporting confirms 3 verifiable technical indicators, including remote code execution without authentication. Analysts assess that this development poses immediate systemic risk to perimeter architectures.",
+    reported_facts: [
+      "Vulnerability identified: CVE-2024-3400 referenced in primary CISA advisory.",
+      "Observed MITRE ATT&CK technique: T1190 cited in perimeter telemetry.",
+      "Primary report topic: Critical RCE Flaw in Enterprise Gateway Appliances (CVE-2024-3400).",
+      "Stated observation: Command injection flaw in PAN-OS GlobalProtect feature permits unauthenticated remote execution.",
+    ],
+    inferences: [
+      "Analysis suggests exploitation of CVE-2024-3400 poses an acute danger of root-level compromise across exposed firewall management interfaces.",
+      "Analytical threat modeling indicates observed activity likely represents initial access staging preceding corporate network pivoting.",
+    ],
+    uncertainties: [
+      "Specific nation-state threat actor attribution remains unconfirmed by official regulatory authorities.",
+      "Comprehensive scope of in-the-wild exploitation across secondary sectors is actively being investigated.",
+    ],
+    key_takeaways: [
+      "Source attribution: Official alert published by CISA.",
+      "Urgent patch evaluation and mitigation required for CVE-2024-3400.",
+      "Isolate impacted GlobalProtect telemetry channels and review forensic session logs.",
+    ],
+    source_attribution: "CISA",
+    model: "cyber-grounded-summarizer",
+    model_version: "v1.2.0",
+    prompt_version: "v1.0.0-grounded",
+    generated_at: "2024-04-14T12:05:00Z",
+    confidence: 0.96,
+    validation_status: "passed",
+    validation_score: 1.0,
+    validation_notes: {
+      facts_evaluated: 4,
+      inferences_evaluated: 2,
+      uncertainties_preserved: 2,
+      hallucinated_cves: [],
+    },
+  },
+};
+
+export async function getContentSummary(contentId: number): Promise<ContentSummary | null> {
+  try {
+    const res = await fetch(`${API_BASE}/content/${contentId}/summary`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Summary fetch failed");
+    return await res.json();
+  } catch {
+    return FALLBACK_CONTENT_SUMMARIES[contentId] || null;
+  }
+}
+
+export async function generateContentSummary(
+  contentId: number,
+  force: boolean = false
+): Promise<ContentSummary | null> {
+  try {
+    const res = await fetch(`${API_BASE}/content/${contentId}/summary/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ force }),
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Generate summary failed");
+    const data = await res.json();
+    return data.summary || null;
+  } catch {
+    return FALLBACK_CONTENT_SUMMARIES[contentId] || null;
   }
 }
