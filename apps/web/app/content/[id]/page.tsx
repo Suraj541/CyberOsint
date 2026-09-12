@@ -268,9 +268,18 @@ export default function ContentDetailPage() {
       {/* Section 22: Extracted Entities */}
       {item.entities && item.entities.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-bold flex items-center gap-2">
-            <span>◈</span> Extracted Cyber Entities ({item.entities.length})
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-bold flex items-center gap-2">
+              <span>◈</span> Extracted Cyber Entities ({item.entities.length})
+            </h2>
+            <Link
+              href="/graph"
+              className="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
+            >
+              <span>🕸 Explore in Knowledge Graph</span>
+              <span>&rarr;</span>
+            </Link>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {item.entities.map((ent, idx) => (
               <Link

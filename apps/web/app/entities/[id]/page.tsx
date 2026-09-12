@@ -81,6 +81,13 @@ export default function EntityDetailPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Link
+            href="/graph"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-mono transition-colors"
+          >
+            <span>🕸 View in Graph</span>
+            <span>&rarr;</span>
+          </Link>
           <span className="text-[11px] px-2.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
             {entity.content_count} Correlated Intelligence Records
           </span>
