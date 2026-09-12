@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.content import Content
 from app.models.source import Source
-from app.schemas.content import ContentDetailResponse, ContentResponse
+from app.schemas.content import ContentDetailResponse, ContentEntityDetail, ContentResponse
 
 router = APIRouter(prefix="/content", tags=["Content"])
 
@@ -69,11 +69,33 @@ def get_content_detail(
     # Resolve linked tag names
     tags = [ct.tag.name for ct in content.content_tags if ct.tag]
     source_name = content.source.name if content.source else None
+    category = (
+        content.source.category
+        if content.source and content.source.category
+        else (tags[0] if tags else "threat_intelligence")
+    )
+
+    # Resolve extracted entities linked to this content
+    entities: List[ContentEntityDetail] = []
+    if content.content_entities:
+        for ce in content.content_entities:
+            if ce.entity:
+                entities.append(
+                    ContentEntityDetail(
+                        id=ce.entity.id,
+                        name=ce.entity.name,
+                        entity_type=ce.entity.entity_type,
+                        normalized_name=ce.entity.normalized_name,
+                        confidence=ce.confidence,
+                        context_snippet=ce.context_snippet,
+                    )
+                )
 
     resp = ContentDetailResponse(
         id=content.id,
         source_id=content.source_id,
         source_name=source_name,
+        category=category,
         title=content.title,
         description=content.description,
         content_type=content.content_type,
@@ -89,6 +111,7 @@ def get_content_detail(
         confidence_score=content.confidence_score,
         status=content.status,
         tags=tags,
+        entities=entities,
         created_at=content.created_at,
         updated_at=content.updated_at,
     )

@@ -43,8 +43,20 @@ class ContentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ContentEntityDetail(BaseModel):
+    """Schema for extracted entity linked to content."""
+    id: int
+    name: str
+    entity_type: str
+    normalized_name: Optional[str] = None
+    confidence: float = 1.0
+    context_snippet: Optional[str] = None
+
+
 class ContentDetailResponse(ContentResponse):
-    """Extended content schema including linked tags and source metadata."""
+    """Extended content schema including linked tags, entities, category, and source metadata."""
 
     source_name: Optional[str] = None
+    category: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
+    entities: List[ContentEntityDetail] = Field(default_factory=list)

@@ -193,5 +193,60 @@ class TestStage20DashboardAndContentPages(unittest.TestCase):
             self.assertIn(elem, code, f"Mandated Section 22 element '{elem}' not found in content page")
 
 
+    def test_section22_content_detail_api_endpoint(self):
+        """
+        Verify GET /api/v1/content/{id} returns all Section 22 fields:
+        title, source_name, published_at, author, category, tags, summary, entities, canonical_url.
+        """
+        src = Source(
+            name="CISA Alerts",
+            source_type="advisory",
+            platform="rss",
+            url="https://cisa.gov/rss-sec22",
+            active=True,
+            category="vulnerabilities",
+        )
+        self.db.add(src)
+        self.db.commit()
+
+        c = Content(
+            source_id=src.id,
+            title="Critical Edge Router Vulnerability",
+            author="CISA Cyber Analyst",
+            summary="Emergency patching required for perimeter edge routers.",
+            description="Detailed context regarding active scanning in the wild.",
+            content_type="advisory",
+            canonical_url="https://example.com/edge-router",
+            content_hash="h_edge_router",
+        )
+        self.db.add(c)
+        self.db.commit()
+
+        e = Entity(name="CVE-2024-9999", entity_type="cve", normalized_name="cve-2024-9999")
+        self.db.add(e)
+        self.db.commit()
+
+        ce = ContentEntity(content_id=c.id, entity_id=e.id, confidence=0.99)
+        self.db.add(ce)
+        self.db.commit()
+
+        resp = self.client.get(f"/api/v1/content/{c.id}")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+
+        # Section 22 fields: Title, Source, Published Date, Author, Category, Tags, Summary, Extracted Entities, Original Source
+        self.assertEqual(data["title"], c.title)
+        self.assertEqual(data["source_name"], src.name)
+        self.assertEqual(data["author"], c.author)
+        self.assertEqual(data["summary"], c.summary)
+        self.assertEqual(data["canonical_url"], c.canonical_url)
+        self.assertEqual(data["category"], src.category)
+        self.assertIn("tags", data)
+        self.assertIn("entities", data)
+        self.assertEqual(len(data["entities"]), 1)
+        self.assertEqual(data["entities"][0]["name"], "CVE-2024-9999")
+        self.assertEqual(data["entities"][0]["entity_type"], "cve")
+
+
 if __name__ == "__main__":
     unittest.main()

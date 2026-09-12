@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { ContentItem } from "../lib/types";
 import { SeverityBadge } from "./SeverityBadge";
 
@@ -125,6 +126,12 @@ export const ContentModal: React.FC<Props> = ({ item, onClose }) => {
             >
               Dismiss
             </button>
+            <Link
+              href={`/content/${item.id}`}
+              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-xs font-mono transition-colors"
+            >
+              Full Content Page &rarr;
+            </Link>
             <a
               href={item.canonical_url}
               target="_blank"
