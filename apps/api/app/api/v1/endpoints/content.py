@@ -91,6 +91,44 @@ def get_content_detail(
                     )
                 )
 
+    # Check for video intelligence metadata & timestamps
+    video_meta = None
+    text_to_scan = f"{content.description or ''}\n\n{content.raw_content or ''}"
+    if content.content_type == "video" or "00:" in text_to_scan:
+        from connectors.video.transcript import transcript_processor
+        from app.schemas.content import VideoMetadataSchema, VideoTimestampItem
+        ts_items = transcript_processor.extract_timestamps(text_to_scan)
+        if ts_items or content.content_type == "video":
+            video_meta = VideoMetadataSchema(
+                channel=content.author,
+                has_transcript=bool(content.raw_content and "Transcript:" in content.raw_content),
+                timestamps=[
+                    VideoTimestampItem(
+                        timestamp_str=ts.timestamp_str,
+                        seconds=ts.seconds,
+                        topic=ts.topic,
+                        text=ts.text,
+                        entities=ts.entities,
+                    )
+                    for ts in ts_items
+                ],
+            )
+
+    # Check for document intelligence metadata
+    document_meta = None
+    if content.content_type in ("document", "paper", "whitepaper"):
+        import re
+        from app.schemas.content import DocumentMetadataSchema
+        authors_list = [content.author] if content.author else []
+        word_count = len(re.findall(r"\b\w+\b", content.raw_content or content.description or ""))
+        document_meta = DocumentMetadataSchema(
+            document_type="pdf" if ".pdf" in content.canonical_url.lower() else "markdown",
+            authors=authors_list,
+            publication_date=content.published_at.isoformat() if content.published_at else None,
+            abstract=content.description or content.summary,
+            word_count=word_count,
+        )
+
     resp = ContentDetailResponse(
         id=content.id,
         source_id=content.source_id,
@@ -112,6 +150,9 @@ def get_content_detail(
         status=content.status,
         tags=tags,
         entities=entities,
+        video_metadata=video_meta,
+        document_metadata=document_meta,
+        raw_content=content.raw_content,
         created_at=content.created_at,
         updated_at=content.updated_at,
     )

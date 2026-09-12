@@ -160,6 +160,111 @@ export default function ContentDetailPage() {
         </div>
       )}
 
+      {/* Section 24: Video Intelligence Chapters & Timestamps */}
+      {item.video_metadata?.timestamps && item.video_metadata.timestamps.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-2">
+              <span>◈</span> Conference Video Chapters & Key Timestamps
+            </h2>
+            {item.video_metadata.duration_formatted && (
+              <span className="text-xs font-mono text-slate-400">
+                Duration: {item.video_metadata.duration_formatted}
+              </span>
+            )}
+          </div>
+          <div className="p-5 rounded-2xl bg-slate-950/90 border border-amber-500/30 space-y-2">
+            {item.video_metadata.timestamps.map((ts, idx) => (
+              <div
+                key={idx}
+                className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-3 hover:border-amber-500/50 transition-colors"
+              >
+                <div className="flex items-center gap-3 font-mono text-xs">
+                  <span className="px-2.5 py-1 rounded bg-amber-950/50 text-amber-300 font-bold border border-amber-500/30">
+                    {ts.timestamp_str}
+                  </span>
+                  <span className="text-slate-200 font-medium">&rarr; {ts.topic}</span>
+                </div>
+                {ts.entities && ts.entities.length > 0 && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {ts.entities.map((ent, eIdx) => (
+                      <span
+                        key={eIdx}
+                        className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-950 text-emerald-400 border border-emerald-500/20"
+                      >
+                        {ent}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Section 25: Document Intelligence Outline & Semantic Chunks */}
+      {item.document_metadata && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold flex items-center gap-2">
+              <span>◈</span> Document Intelligence & Structural Breakdown
+            </h2>
+            <div className="flex items-center gap-2 font-mono text-xs text-slate-400">
+              <span className="px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 uppercase font-bold">
+                {item.document_metadata.document_type}
+              </span>
+              {item.document_metadata.page_count && (
+                <span>{item.document_metadata.page_count} Pages</span>
+              )}
+            </div>
+          </div>
+          <div className="p-5 rounded-2xl bg-slate-950/90 border border-cyan-900/40 space-y-4">
+            {item.document_metadata.authors && item.document_metadata.authors.length > 0 && (
+              <div className="text-xs text-slate-400 font-mono">
+                <span className="text-slate-500">Document Authors: </span>
+                <span className="text-slate-300">{item.document_metadata.authors.join(", ")}</span>
+              </div>
+            )}
+            {item.document_metadata.section_headings && item.document_metadata.section_headings.length > 0 && (
+              <div>
+                <span className="text-xs font-mono uppercase text-slate-400 block mb-2">Section Outline</span>
+                <div className="flex flex-wrap gap-2">
+                  {item.document_metadata.section_headings.map((heading, hIdx) => (
+                    <span
+                      key={hIdx}
+                      className="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 text-xs font-mono"
+                    >
+                      § {heading}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {item.document_metadata.chunks_preview && item.document_metadata.chunks_preview.length > 0 && (
+              <div>
+                <span className="text-xs font-mono uppercase text-slate-400 block mb-2">
+                  Extracted Semantic Chunks ({item.document_metadata.chunks_count || item.document_metadata.chunks_preview.length})
+                </span>
+                <div className="space-y-2">
+                  {item.document_metadata.chunks_preview.map((chk, cIdx) => (
+                    <div
+                      key={cIdx}
+                      className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs font-mono text-slate-300"
+                    >
+                      <span className="text-cyan-400 font-semibold block mb-1">
+                        Chunk #{chk.chunk_index + 1}: {chk.heading}
+                      </span>
+                      <p className="text-slate-400 leading-relaxed">{chk.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Section 22: Extracted Entities */}
       {item.entities && item.entities.length > 0 && (
         <div className="space-y-3">

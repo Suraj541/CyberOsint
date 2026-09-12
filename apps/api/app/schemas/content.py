@@ -53,6 +53,35 @@ class ContentEntityDetail(BaseModel):
     context_snippet: Optional[str] = None
 
 
+class VideoTimestampItem(BaseModel):
+    timestamp_str: str
+    seconds: int
+    topic: str
+    text: Optional[str] = None
+    entities: List[str] = Field(default_factory=list)
+
+
+class VideoMetadataSchema(BaseModel):
+    channel: Optional[str] = None
+    duration: Optional[int] = None
+    duration_formatted: Optional[str] = None
+    language: Optional[str] = None
+    has_transcript: bool = False
+    timestamps: List[VideoTimestampItem] = Field(default_factory=list)
+
+
+class DocumentMetadataSchema(BaseModel):
+    document_type: str = "unknown"
+    authors: List[str] = Field(default_factory=list)
+    publication_date: Optional[str] = None
+    abstract: Optional[str] = None
+    page_count: Optional[int] = None
+    word_count: Optional[int] = None
+    file_size_bytes: Optional[int] = None
+    section_headings: List[str] = Field(default_factory=list)
+    retention_mode: str = "full_text"
+
+
 class ContentDetailResponse(ContentResponse):
     """Extended content schema including linked tags, entities, category, and source metadata."""
 
@@ -60,3 +89,6 @@ class ContentDetailResponse(ContentResponse):
     category: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
     entities: List[ContentEntityDetail] = Field(default_factory=list)
+    video_metadata: Optional[VideoMetadataSchema] = None
+    document_metadata: Optional[DocumentMetadataSchema] = None
+    raw_content: Optional[str] = None
