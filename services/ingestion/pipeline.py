@@ -26,6 +26,7 @@ from services.deduplication import deduplication_engine, normalize_url
 from services.ingestion.deduplication import Deduplicator, compute_content_hash
 from services.ingestion.metrics import IngestionMetrics
 from services.ingestion.validation import ItemValidator
+from services.graph import knowledge_graph_service
 from services.search import search_service
 from services.semantic import semantic_service
 
@@ -332,6 +333,7 @@ class IngestionPipeline:
         into Entity and ContentEntity tables using the Deterministic Entity Extraction Engine.
         """
         seen_entity_ids: Set[int] = set()
+        linked_entities: List[Entity] = []
 
         extracted_entities = entity_extractor.extract_from_content(
             title=content.title,
@@ -391,6 +393,7 @@ class IngestionPipeline:
 
             if entity_obj.id not in seen_entity_ids:
                 seen_entity_ids.add(entity_obj.id)
+                linked_entities.append(entity_obj)
                 content_entity = ContentEntity(
                     content_id=content.id,
                     entity_id=entity_obj.id,
@@ -399,6 +402,17 @@ class IngestionPipeline:
                     context_snippet=ent.context_snippet or clean_name,
                 )
                 db.add(content_entity)
+
+        # Automatic Knowledge Graph edge synthesis (Section 27)
+        if len(linked_entities) >= 2:
+            try:
+                knowledge_graph_service.synthesize_content_edges(
+                    db=db,
+                    content_id=content.id,
+                    entities=linked_entities,
+                )
+            except Exception as graph_exc:
+                logger.debug("Knowledge graph synthesis skipped for content id=%s: %s", content.id, graph_exc)
 
     def ingest_source(
         self,

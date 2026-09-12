@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     documents,
     entities,
     extractor,
+    graph,
     health,
     mitre,
     queue,
@@ -45,6 +46,10 @@ api_router.include_router(entities.router)
 
 # MITRE ATT&CK Enterprise Matrix & Graph endpoints (Section 26)
 api_router.include_router(mitre.router)
+
+# Knowledge Graph endpoints (Section 27)
+api_router.include_router(graph.router)
+
 
 
 # Cybersecurity Taxonomy endpoints

@@ -20,6 +20,8 @@ from app.models.mitre import (
     MitreTacticModel,
     MitreTechniqueModel,
 )
+from app.models.graph import EntityRelationship
+
 
 __all__ = [
     "Base",
@@ -41,5 +43,7 @@ __all__ = [
     "MitreMitigationModel",
     "MitreDataSourceModel",
     "MitreRelationshipModel",
+    "EntityRelationship",
 ]
+
 

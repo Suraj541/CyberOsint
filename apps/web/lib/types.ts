@@ -338,4 +338,71 @@ export interface AttackMatrixResponse {
   total_techniques: number;
 }
 
+// --------------------------------------------------------------------------
+// Knowledge Graph Interfaces (IMPLEMENT.md Section 27)
+// --------------------------------------------------------------------------
 
+export interface GraphNode {
+  id: number;
+  name: string;
+  entity_type: string;
+  normalized_name: string;
+  degree: number;
+  metadata?: Record<string, any>;
+}
+
+export interface GraphEdge {
+  id: number;
+  source_id: number;
+  target_id: number;
+  relationship: string;
+  confidence: number;
+  source_content_id?: number;
+  source_content_title?: string;
+}
+
+export interface GraphSubgraph {
+  center_id: number;
+  depth: number;
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export interface GraphPath {
+  source_id: number;
+  target_id: number;
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  length: number;
+}
+
+export interface GraphStats {
+  total_nodes: number;
+  total_edges: number;
+  relationship_types: Record<string, number>;
+  entity_types: Record<string, number>;
+  top_hubs: Array<{
+    id: number;
+    name: string;
+    entity_type: string;
+    degree: number;
+  }>;
+}
+
+export interface RelationshipItem {
+  id: number;
+  source_entity_id: number;
+  relationship: string;
+  target_entity_id: number;
+  confidence: number;
+  source_content_id?: number;
+  created_at: string;
+}
+
+export interface RelationshipCreateInput {
+  source_entity_id: number;
+  relationship: string;
+  target_entity_id: number;
+  confidence?: number;
+  source_content_id?: number;
+}

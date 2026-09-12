@@ -14,6 +14,7 @@ export const NAV_ITEMS = [
   { href: "/videos", label: "Videos", icon: "▶", badge: null },
   { href: "/documents", label: "Documents", icon: "📄", badge: null },
   { href: "/intelligence", label: "Intelligence", icon: "⚡", badge: "ACTORS" },
+  { href: "/graph", label: "Knowledge Graph", icon: "🕸", badge: "GRAPH" },
   { href: "/sources", label: "Sources", icon: "🖧", badge: null },
 ];
 

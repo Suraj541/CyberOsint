@@ -22,6 +22,13 @@ import {
   AttackTactic,
   AttackTechnique,
   AttackTechniqueDetail,
+  GraphEdge,
+  GraphNode,
+  GraphPath,
+  GraphStats,
+  GraphSubgraph,
+  RelationshipCreateInput,
+  RelationshipItem,
 } from "./types";
 
 
@@ -1376,4 +1383,230 @@ export async function getMitreRelationships(rel?: string): Promise<AttackRelatio
   }
 }
 
+// =====================================================================
+// Knowledge Graph API (IMPLEMENT.md Section 27)
+// =====================================================================
 
+export const FALLBACK_GRAPH_NODES: GraphNode[] = [
+  { id: 1, name: "APT29", entity_type: "threat_actor", normalized_name: "apt29", degree: 4 },
+  { id: 2, name: "PowerShell", entity_type: "tool", normalized_name: "powershell", degree: 3 },
+  { id: 3, name: "SolarWinds Orion", entity_type: "product", normalized_name: "solarwinds orion", degree: 2 },
+  { id: 4, name: "LockBit", entity_type: "threat_actor", normalized_name: "lockbit", degree: 3 },
+  { id: 5, name: "LockBit 3.0", entity_type: "malware", normalized_name: "lockbit 3.0", degree: 3 },
+  { id: 6, name: "CVE-2024-3400", entity_type: "cve", normalized_name: "cve-2024-3400", degree: 3 },
+  { id: 7, name: "Palo Alto Networks", entity_type: "vendor", normalized_name: "palo alto networks", degree: 2 },
+  { id: 8, name: "Volt Typhoon", entity_type: "threat_actor", normalized_name: "volt typhoon", degree: 2 },
+  { id: 9, name: "Living Off The Land", entity_type: "technique", normalized_name: "living off the land", degree: 2 },
+  { id: 10, name: "Critical Infrastructure", entity_type: "organization", normalized_name: "critical infrastructure", degree: 3 },
+  { id: 11, name: "Cobalt Strike", entity_type: "malware", normalized_name: "cobalt strike", degree: 3 },
+  { id: 12, name: "Process Injection", entity_type: "technique", normalized_name: "process injection", degree: 2 },
+  { id: 13, name: "Active Directory", entity_type: "product", normalized_name: "active directory", degree: 2 },
+  { id: 14, name: "Mimikatz", entity_type: "tool", normalized_name: "mimikatz", degree: 2 },
+];
+
+export const FALLBACK_GRAPH_EDGES: GraphEdge[] = [
+  { id: 1, source_id: 1, target_id: 2, relationship: "uses", confidence: 0.95, source_content_id: 101, source_content_title: "CISA APT29 Advisory" },
+  { id: 2, source_id: 2, target_id: 3, relationship: "associated_with", confidence: 0.9, source_content_id: 101, source_content_title: "SolarWinds Supply Chain Report" },
+  { id: 3, source_id: 4, target_id: 5, relationship: "operates", confidence: 0.99, source_content_id: 102, source_content_title: "LockBit Campaign Analysis" },
+  { id: 4, source_id: 5, target_id: 6, relationship: "exploits", confidence: 0.92, source_content_id: 101, source_content_title: "PAN-OS Zero-Day Advisory" },
+  { id: 5, source_id: 6, target_id: 7, relationship: "affects", confidence: 1.0, source_content_id: 101, source_content_title: "NVD CVE-2024-3400 Entry" },
+  { id: 6, source_id: 8, target_id: 9, relationship: "uses", confidence: 0.94, source_content_id: 103, source_content_title: "Volt Typhoon Joint Advisory" },
+  { id: 7, source_id: 9, target_id: 10, relationship: "targets", confidence: 0.88, source_content_id: 103, source_content_title: "Volt Typhoon Joint Advisory" },
+  { id: 8, source_id: 1, target_id: 11, relationship: "uses", confidence: 0.91, source_content_id: 101, source_content_title: "SolarWinds Supply Chain Report" },
+  { id: 9, source_id: 11, target_id: 12, relationship: "implements", confidence: 0.96, source_content_id: 102, source_content_title: "Cobalt Strike Profile" },
+  { id: 10, source_id: 12, target_id: 13, relationship: "targets", confidence: 0.85, source_content_id: 102, source_content_title: "AD Lateral Movement" },
+  { id: 11, source_id: 1, target_id: 14, relationship: "uses", confidence: 0.92, source_content_id: 101, source_content_title: "Credential Access Intel" },
+  { id: 12, source_id: 14, target_id: 13, relationship: "targets", confidence: 0.97, source_content_id: 101, source_content_title: "Credential Access Intel" },
+  { id: 13, source_id: 4, target_id: 10, relationship: "targets", confidence: 0.89, source_content_id: 102, source_content_title: "Healthcare Ransomware Alert" },
+];
+
+export const FALLBACK_GRAPH_STATS: GraphStats = {
+  total_nodes: 14,
+  total_edges: 13,
+  relationship_types: {
+    uses: 4,
+    targets: 3,
+    exploits: 1,
+    affects: 1,
+    associated_with: 1,
+    operates: 1,
+    implements: 2,
+  },
+  entity_types: {
+    threat_actor: 3,
+    malware: 2,
+    tool: 2,
+    cve: 1,
+    technique: 2,
+    product: 2,
+    vendor: 1,
+    organization: 1,
+  },
+  top_hubs: [
+    { id: 1, name: "APT29", entity_type: "threat_actor", degree: 4 },
+    { id: 4, name: "LockBit", entity_type: "threat_actor", degree: 3 },
+    { id: 5, name: "LockBit 3.0", entity_type: "malware", degree: 3 },
+    { id: 10, name: "Critical Infrastructure", entity_type: "organization", degree: 3 },
+    { id: 2, name: "PowerShell", entity_type: "tool", degree: 3 },
+  ],
+};
+
+export async function getGraphSubgraph(
+  entityId: number,
+  depth: number = 1,
+  limit: number = 50
+): Promise<GraphSubgraph> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/graph/entities/${entityId}?depth=${depth}&limit=${limit}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) throw new Error("Subgraph fetch failed");
+    return await res.json();
+  } catch {
+    // Fallback: build ego network from fallback edges
+    const visitedNodes = new Set<number>([entityId]);
+    let currentFrontier = new Set<number>([entityId]);
+
+    for (let d = 0; d < depth; d++) {
+      const nextFrontier = new Set<number>();
+      FALLBACK_GRAPH_EDGES.forEach((e) => {
+        if (currentFrontier.has(e.source_id)) {
+          visitedNodes.add(e.target_id);
+          nextFrontier.add(e.target_id);
+        }
+        if (currentFrontier.has(e.target_id)) {
+          visitedNodes.add(e.source_id);
+          nextFrontier.add(e.source_id);
+        }
+      });
+      currentFrontier = nextFrontier;
+    }
+
+    const subNodes = FALLBACK_GRAPH_NODES.filter((n) => visitedNodes.has(n.id));
+    const subEdges = FALLBACK_GRAPH_EDGES.filter(
+      (e) => visitedNodes.has(e.source_id) && visitedNodes.has(e.target_id)
+    );
+
+    return {
+      center_id: entityId,
+      depth,
+      nodes: subNodes.length > 0 ? subNodes : FALLBACK_GRAPH_NODES.slice(0, 8),
+      edges: subEdges.length > 0 ? subEdges : FALLBACK_GRAPH_EDGES.slice(0, 7),
+    };
+  }
+}
+
+export async function getGraphPath(
+  sourceId: number,
+  targetId: number,
+  maxDepth: number = 4
+): Promise<GraphPath | null> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/graph/path?source_id=${sourceId}&target_id=${targetId}&max_depth=${maxDepth}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) throw new Error("Path finding failed");
+    return await res.json();
+  } catch {
+    // BFS on fallback graph
+    const queue: Array<{ current: number; path: number[]; edgePath: GraphEdge[] }> = [
+      { current: sourceId, path: [sourceId], edgePath: [] },
+    ];
+    const visited = new Set<number>([sourceId]);
+
+    while (queue.length > 0) {
+      const { current, path, edgePath } = queue.shift()!;
+      if (current === targetId) {
+        const nodes = path
+          .map((id) => FALLBACK_GRAPH_NODES.find((n) => n.id === id))
+          .filter(Boolean) as GraphNode[];
+        return {
+          source_id: sourceId,
+          target_id: targetId,
+          nodes,
+          edges: edgePath,
+          length: edgePath.length,
+        };
+      }
+      if (path.length - 1 >= maxDepth) continue;
+
+      for (const e of FALLBACK_GRAPH_EDGES) {
+        let neighbor: number | null = null;
+        if (e.source_id === current) neighbor = e.target_id;
+        else if (e.target_id === current) neighbor = e.source_id;
+
+        if (neighbor && !visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push({
+            current: neighbor,
+            path: [...path, neighbor],
+            edgePath: [...edgePath, e],
+          });
+        }
+      }
+    }
+    return null;
+  }
+}
+
+export async function getGraphRelationships(params?: {
+  source_id?: number;
+  target_id?: number;
+  relationship?: string;
+  content_id?: number;
+  limit?: number;
+  offset?: number;
+}): Promise<RelationshipItem[]> {
+  try {
+    const query = new URLSearchParams();
+    if (params?.source_id) query.set("source_id", String(params.source_id));
+    if (params?.target_id) query.set("target_id", String(params.target_id));
+    if (params?.relationship) query.set("relationship", params.relationship);
+    if (params?.content_id) query.set("content_id", String(params.content_id));
+    if (params?.limit) query.set("limit", String(params.limit));
+    if (params?.offset) query.set("offset", String(params.offset));
+
+    const res = await fetch(`${API_BASE}/graph/relationships?${query.toString()}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Relationships fetch failed");
+    return await res.json();
+  } catch {
+    return FALLBACK_GRAPH_EDGES.map((e) => ({
+      id: e.id,
+      source_entity_id: e.source_id,
+      relationship: e.relationship,
+      target_entity_id: e.target_id,
+      confidence: e.confidence,
+      source_content_id: e.source_content_id,
+      created_at: new Date().toISOString(),
+    }));
+  }
+}
+
+export async function createGraphRelationship(
+  data: RelationshipCreateInput
+): Promise<RelationshipItem> {
+  const res = await fetch(`${API_BASE}/graph/relationships`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to create relationship: ${errorText}`);
+  }
+  return await res.json();
+}
+
+export async function getGraphStats(): Promise<GraphStats> {
+  try {
+    const res = await fetch(`${API_BASE}/graph/stats`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Graph stats fetch failed");
+    return await res.json();
+  } catch {
+    return FALLBACK_GRAPH_STATS;
+  }
+}
