@@ -24,6 +24,7 @@ from app.models.graph import EntityRelationship
 from app.models.source_quality import SourceQuality
 from app.models.summary import ContentSummary
 from app.models.recommendation import UserProfile, UserInteraction
+from app.models.watchlist import Watchlist, WatchlistItem
 
 
 __all__ = [
@@ -51,6 +52,8 @@ __all__ = [
     "ContentSummary",
     "UserProfile",
     "UserInteraction",
+    "Watchlist",
+    "WatchlistItem",
 ]
 
 

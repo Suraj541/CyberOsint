@@ -38,6 +38,11 @@ import {
   TopicRecommendation,
   UserProfile,
   RecommendationsResponse,
+  Watchlist,
+  WatchlistItem,
+  WatchlistItemType,
+  WatchlistFeedResponse,
+  MatchedContentItem,
 } from "./types";
 
 
@@ -2410,4 +2415,251 @@ export async function fetchSavedContent(): Promise<RecommendationItem[]> {
     return [];
   }
 }
+
+// =====================================================================
+// Section 32 (Step 31): Watchlists API & Fallbacks
+// =====================================================================
+
+export const FALLBACK_WATCHLISTS: Watchlist[] = [
+  {
+    id: 101,
+    session_id: "guest_analyst_session",
+    name: "Critical Zero-Days & KEV",
+    description: "Actively exploited zero-day vulnerabilities and critical edge perimeter threats.",
+    is_active: true,
+    notification_channel: "in_app",
+    item_count: 4,
+    items: [
+      { id: 1001, watchlist_id: 101, item_type: "cve", item_value: "CVE-2024-3400", severity_threshold: "CRITICAL", notify_on_match: true, created_at: "2024-05-01T00:00:00Z" },
+      { id: 1002, watchlist_id: 101, item_type: "vendor", item_value: "Palo Alto Networks", notify_on_match: true, created_at: "2024-05-01T00:00:00Z" },
+      { id: 1003, watchlist_id: 101, item_type: "topic", item_value: "Zero-Day Vulnerabilities", notify_on_match: true, created_at: "2024-05-01T00:00:00Z" },
+      { id: 1004, watchlist_id: 101, item_type: "keyword", item_value: "command injection", notify_on_match: true, created_at: "2024-05-01T00:00:00Z" },
+    ],
+    created_at: "2024-05-01T00:00:00Z",
+    updated_at: "2024-05-01T00:00:00Z",
+  },
+  {
+    id: 102,
+    session_id: "guest_analyst_session",
+    name: "Kubernetes & Cloud Defense",
+    description: "Cloud-native orchestration security, container escapes, and runtime detection.",
+    is_active: true,
+    notification_channel: "in_app",
+    item_count: 5,
+    items: [
+      { id: 1005, watchlist_id: 102, item_type: "technology", item_value: "Kubernetes", notify_on_match: true, created_at: "2024-05-01T00:00:00Z" },
+      { id: 1006, watchlist_id: 102, item_type: "product", item_value: "PAN-OS", notify_on_match: true, created_at: "2024-05-01T00:00:00Z" },
+      { id: 1007, watchlist_id: 102, item_type: "tool", item_value: "Falco", notify_on_match: true, created_at: "2024-05-01T00:00:00Z" },
+      { id: 1008, watchlist_id: 102, item_type: "tool", item_value: "KubeArmor", notify_on_match: true, created_at: "2024-05-01T00:00:00Z" },
+      { id: 1009, watchlist_id: 102, item_type: "topic", item_value: "Container Security", notify_on_match: true, created_at: "2024-05-01T00:00:00Z" },
+    ],
+    created_at: "2024-05-01T00:00:00Z",
+    updated_at: "2024-05-01T00:00:00Z",
+  },
+  {
+    id: 103,
+    session_id: "guest_analyst_session",
+    name: "Ransomware & Threat Actors",
+    description: "Extortion syndicates, novel encryptor payloads, and exfiltration campaigns.",
+    is_active: true,
+    notification_channel: "in_app",
+    item_count: 4,
+    items: [
+      { id: 1010, watchlist_id: 103, item_type: "threat_actor", item_value: "LockBit", notify_on_match: true, created_at: "2024-05-01T00:00:00Z" },
+      { id: 1011, watchlist_id: 103, item_type: "malware", item_value: "LockBit 3.0", notify_on_match: true, created_at: "2024-05-01T00:00:00Z" },
+      { id: 1012, watchlist_id: 103, item_type: "topic", item_value: "Ransomware", notify_on_match: true, created_at: "2024-05-01T00:00:00Z" },
+      { id: 1013, watchlist_id: 103, item_type: "keyword", item_value: "data exfiltration", notify_on_match: true, created_at: "2024-05-01T00:00:00Z" },
+    ],
+    created_at: "2024-05-01T00:00:00Z",
+    updated_at: "2024-05-01T00:00:00Z",
+  },
+];
+
+export async function fetchWatchlists(): Promise<Watchlist[]> {
+  const sessionId = getSessionId();
+  try {
+    const res = await fetch(`${API_BASE}/watchlists?session_id=${sessionId}`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Watchlists fetch failed");
+    return await res.json();
+  } catch {
+    return FALLBACK_WATCHLISTS;
+  }
+}
+
+export async function createWatchlist(data: {
+  name: string;
+  description?: string;
+  notification_channel?: string;
+  items?: { item_type: string; item_value: string; severity_threshold?: string }[];
+}): Promise<Watchlist> {
+  const sessionId = getSessionId();
+  try {
+    const res = await fetch(`${API_BASE}/watchlists`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        name: data.name,
+        description: data.description,
+        notification_channel: data.notification_channel || "in_app",
+        items: data.items || [],
+      }),
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Create watchlist failed");
+    return await res.json();
+  } catch {
+    const newWl: Watchlist = {
+      id: Date.now(),
+      session_id: sessionId,
+      name: data.name,
+      description: data.description,
+      is_active: true,
+      notification_channel: data.notification_channel || "in_app",
+      item_count: data.items?.length || 0,
+      items: (data.items || []).map((it, idx) => ({
+        id: Date.now() + idx,
+        watchlist_id: Date.now(),
+        item_type: it.item_type as WatchlistItemType,
+        item_value: it.item_value,
+        severity_threshold: it.severity_threshold,
+        notify_on_match: true,
+      })),
+      created_at: new Date().toISOString(),
+    };
+    return newWl;
+  }
+}
+
+export async function fetchWatchlistById(id: number): Promise<Watchlist> {
+  try {
+    const res = await fetch(`${API_BASE}/watchlists/${id}`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Watchlist fetch failed");
+    return await res.json();
+  } catch {
+    const found = FALLBACK_WATCHLISTS.find((w) => w.id === id);
+    if (found) return found;
+    return FALLBACK_WATCHLISTS[0];
+  }
+}
+
+export async function updateWatchlist(
+  id: number,
+  data: { name?: string; description?: string; is_active?: boolean; notification_channel?: string }
+): Promise<Watchlist> {
+  try {
+    const res = await fetch(`${API_BASE}/watchlists/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Update watchlist failed");
+    return await res.json();
+  } catch {
+    const found = FALLBACK_WATCHLISTS.find((w) => w.id === id) || FALLBACK_WATCHLISTS[0];
+    return { ...found, ...data };
+  }
+}
+
+export async function deleteWatchlist(id: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/watchlists/${id}`, {
+      method: "DELETE",
+      cache: "no-store",
+    });
+    return res.ok;
+  } catch {
+    return true;
+  }
+}
+
+export async function addWatchlistItem(
+  watchlistId: number,
+  item: { item_type: string; item_value: string; severity_threshold?: string; notify_on_match?: boolean }
+): Promise<WatchlistItem> {
+  try {
+    const res = await fetch(`${API_BASE}/watchlists/${watchlistId}/items`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(item),
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Add item failed");
+    return await res.json();
+  } catch {
+    return {
+      id: Date.now(),
+      watchlist_id: watchlistId,
+      item_type: item.item_type as WatchlistItemType,
+      item_value: item.item_value,
+      severity_threshold: item.severity_threshold,
+      notify_on_match: item.notify_on_match ?? true,
+      created_at: new Date().toISOString(),
+    };
+  }
+}
+
+export async function removeWatchlistItem(watchlistId: number, itemId: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/watchlists/${watchlistId}/items/${itemId}`, {
+      method: "DELETE",
+      cache: "no-store",
+    });
+    return res.ok;
+  } catch {
+    return true;
+  }
+}
+
+export async function fetchWatchlistFeed(watchlistId: number, limit: number = 20): Promise<WatchlistFeedResponse> {
+  try {
+    const res = await fetch(`${API_BASE}/watchlists/${watchlistId}/feed?limit=${limit}`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Watchlist feed fetch failed");
+    return await res.json();
+  } catch {
+    // Fallback matched feed
+    return {
+      watchlist_id: watchlistId,
+      watchlist_name: "Active Surveillance",
+      total_matches: 2,
+      items: [
+        {
+          content_id: 101,
+          title: "Critical RCE Flaw in Enterprise Gateway Appliances (CVE-2024-3400)",
+          description: "Command injection flaw in PAN-OS GlobalProtect feature permits unauthenticated remote code execution.",
+          summary: "Nation-state actors observed actively deploying backdoor webshells via unpatched edge devices.",
+          canonical_url: "https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-109a",
+          content_type: "advisory",
+          source: "CISA",
+          published_at: "2024-04-14T12:00:00Z",
+          severity: "CRITICAL",
+          cvss_score: 10.0,
+          matched_items: [
+            { watchlist_id: watchlistId, watchlist_name: "Active Surveillance", item_id: 1, item_type: "cve", item_value: "CVE-2024-3400", matched_field: "entities.cve", matched_text: "CVE-2024-3400" },
+            { watchlist_id: watchlistId, watchlist_name: "Active Surveillance", item_id: 2, item_type: "vendor", item_value: "Palo Alto Networks", matched_field: "entities.vendor", matched_text: "Palo Alto Networks" }
+          ],
+          match_score: 1.0,
+        },
+        {
+          content_id: 1001,
+          title: "Kubernetes Security: Hardening Clusters and Mitigating Node Breaches",
+          description: "Comprehensive guide to cluster hardening, pod security admission standards, and control plane isolation.",
+          summary: "Covers RBAC hardening, mTLS between microservices, network policies, and runtime defense.",
+          canonical_url: "https://www.cisa.gov/resources-tools/k8s-hardening-guidance",
+          content_type: "article",
+          source: "CISA Cloud Division",
+          published_at: "2024-05-10T10:00:00Z",
+          severity: "HIGH",
+          cvss_score: 8.0,
+          matched_items: [
+            { watchlist_id: watchlistId, watchlist_name: "Active Surveillance", item_id: 3, item_type: "technology", item_value: "Kubernetes", matched_field: "technology", matched_text: "Kubernetes" }
+          ],
+          match_score: 0.85,
+        }
+      ],
+    };
+  }
+}
+
 

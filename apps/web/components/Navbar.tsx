@@ -39,6 +39,13 @@ export const Navbar: React.FC = () => {
       {/* Right Action Icons */}
       <div className="flex items-center gap-3">
         <Link
+          href="/watchlists"
+          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 hover:text-cyan-200 text-xs font-mono transition-colors"
+        >
+          <span>🎯 Watchlists</span>
+        </Link>
+
+        <Link
           href="/search"
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white text-xs font-mono transition-colors"
         >

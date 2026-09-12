@@ -25,6 +25,7 @@ from app.api.v1.endpoints import (
     sources,
     summaries,
     taxonomy,
+    watchlists,
 )
 
 api_router = APIRouter()
@@ -37,6 +38,9 @@ api_router.include_router(sources.router)
 
 # Normalized content endpoints
 api_router.include_router(content.router)
+
+# Watchlists & Surveillance endpoints (Section 32)
+api_router.include_router(watchlists.router)
 
 # Personalized Recommendations endpoints (Section 31)
 api_router.include_router(recommendations.router)

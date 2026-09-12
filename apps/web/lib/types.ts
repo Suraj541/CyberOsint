@@ -559,3 +559,73 @@ export interface RecommendationsResponse {
   total_matched: number;
 }
 
+// Section 32 (Step 31): Watchlist Interfaces
+export type WatchlistItemType =
+  | "cve"
+  | "product"
+  | "vendor"
+  | "threat_actor"
+  | "malware"
+  | "technology"
+  | "topic"
+  | "researcher"
+  | "tool"
+  | "keyword";
+
+export interface WatchlistItem {
+  id: number;
+  watchlist_id: number;
+  item_type: WatchlistItemType;
+  item_value: string;
+  severity_threshold?: string;
+  notify_on_match: boolean;
+  created_at?: string;
+}
+
+export interface Watchlist {
+  id: number;
+  session_id: string;
+  user_id?: number;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  notification_channel: string;
+  item_count: number;
+  items: WatchlistItem[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface MatchedWatchlistItemHit {
+  watchlist_id: number;
+  watchlist_name: string;
+  item_id: number;
+  item_type: string;
+  item_value: string;
+  matched_field: string;
+  matched_text: string;
+}
+
+export interface MatchedContentItem {
+  content_id: number;
+  title: string;
+  description?: string;
+  summary?: string;
+  canonical_url: string;
+  content_type: string;
+  source: string;
+  published_at?: string;
+  severity?: SeverityLevel | string;
+  cvss_score?: number;
+  matched_items: MatchedWatchlistItemHit[];
+  match_score: number;
+}
+
+export interface WatchlistFeedResponse {
+  watchlist_id: number;
+  watchlist_name: string;
+  total_matches: number;
+  items: MatchedContentItem[];
+}
+
+
