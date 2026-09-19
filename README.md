@@ -6,6 +6,7 @@
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-black.svg?logo=next.js&logoColor=white)](https://nextjs.org)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%2016-336791.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
+[![GitHub Pages](https://img.shields.io/badge/Live%20Showcase-GitHub%20Pages-e5a93b.svg)](https://suraj541.github.io/CyberOsint/)
 [![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Verified-emerald.svg)](#features)
 
 ---
