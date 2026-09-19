@@ -13,7 +13,7 @@
 
 ## 1. System Overview
 
-**the_info** is an autonomous cybersecurity OSINT workstation and aggregation engine. It monitors external sovereign CERT directives, vendor vulnerability registries, peer-reviewed exploit research, threat actor campaigns, and decentralized infosec channels.
+**CyberOsint** is an autonomous cybersecurity OSINT workstation and aggregation engine. It monitors external sovereign CERT directives, vendor vulnerability registries, peer-reviewed exploit research, threat actor campaigns, and decentralized infosec channels.
 
 All ingested data undergoes deterministic deduplication, semantic classification, named entity recognition (NER), and relationship mapping, feeding an interactive warm-paper intelligence dashboard, an entity knowledge graph, and a Reciprocal Rank Fusion (RRF) hybrid search engine.
 
