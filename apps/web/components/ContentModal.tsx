@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { ContentItem } from "../lib/types";
 import { SeverityBadge } from "./SeverityBadge";
+import { formatDateTime } from "../lib/formatters";
 
 interface Props {
   item: ContentItem | null;
@@ -11,33 +12,28 @@ interface Props {
 export const ContentModal: React.FC<Props> = ({ item, onClose }) => {
   if (!item) return null;
 
-  const formattedDate = item.published_at
-    ? new Date(item.published_at).toLocaleString("en-US", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      })
-    : "Unknown date";
+  const formattedDate = formatDateTime(item.published_at, "Unknown date");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="cyber-card w-full max-w-3xl rounded-2xl max-h-[90vh] flex flex-col border border-slate-700/80 shadow-2xl overflow-hidden bg-slate-900/95">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-paper-ink/50 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="w-full max-w-3xl rounded-2xl max-h-[90vh] flex flex-col border-2 border-paper-border shadow-2xl overflow-hidden bg-paper-card">
         {/* Modal Header */}
-        <div className="p-6 border-b border-slate-800 flex items-start justify-between gap-4">
+        <div className="p-6 border-b border-paper-border bg-paper-panel flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-slate-800 text-cyan-400 border border-slate-700">
-                {item.source}
+              <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-paper-bg text-paper-accent border border-paper-border font-bold">
+                {item.source || "OSINT"}
               </span>
-              <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-slate-800/80 text-slate-300 border border-slate-700">
-                {item.category.replace(/_/g, " ")}
+              <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-paper-bg text-paper-muted border border-paper-border">
+                {(typeof item.category === "string" && item.category ? item.category : "general").replace(/_/g, " ")}
               </span>
               {item.severity && <SeverityBadge severity={item.severity} score={item.cvss_score} />}
             </div>
-            <h2 className="text-xl font-bold text-white leading-tight">{item.title}</h2>
+            <h2 className="text-xl font-serif font-bold text-paper-ink leading-tight">{item.title}</h2>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700 text-sm font-mono"
+            className="text-paper-muted hover:text-paper-ink p-2 rounded-lg bg-paper-card hover:bg-paper-border/30 border border-paper-border text-sm font-mono transition-colors"
             aria-label="Close modal"
           >
             ✕
@@ -45,27 +41,29 @@ export const ContentModal: React.FC<Props> = ({ item, onClose }) => {
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 text-slate-300 text-sm leading-relaxed">
+        <div className="p-6 overflow-y-auto space-y-6 text-paper-ink text-sm leading-relaxed">
           {/* Metadata Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 font-mono text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-paper-panel border border-paper-border font-mono text-xs">
             <div>
-              <span className="text-slate-500 block mb-1">PUBLISHED DATE</span>
-              <span className="text-slate-300">{formattedDate}</span>
+              <span className="text-paper-muted block mb-1">PUBLISHED DATE</span>
+              <span className="text-paper-ink font-semibold">{formattedDate}</span>
             </div>
             <div>
-              <span className="text-slate-500 block mb-1">AUTHOR</span>
-              <span className="text-slate-300">{item.author || "Intelligence Analyst"}</span>
+              <span className="text-paper-muted block mb-1">AUTHOR</span>
+              <span className="text-paper-ink font-semibold">{item.author || "Intelligence Analyst"}</span>
             </div>
             <div>
-              <span className="text-slate-500 block mb-1">CONTENT TYPE</span>
-              <span className="text-cyan-400 uppercase">{item.content_type}</span>
+              <span className="text-paper-muted block mb-1">CONTENT TYPE</span>
+              <span className="text-paper-accent uppercase font-bold">{item.content_type}</span>
             </div>
           </div>
 
           {/* Executive Summary */}
           <div>
-            <h4 className="text-xs uppercase font-mono tracking-wider text-slate-400 mb-2">Executive Summary</h4>
-            <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800 text-slate-200">
+            <h4 className="text-xs uppercase font-mono tracking-wider text-paper-muted mb-2 font-bold">
+              Executive Summary
+            </h4>
+            <div className="p-4 rounded-xl bg-paper-bg border border-paper-border text-paper-ink font-sans leading-relaxed">
               {item.summary || item.description || "No summarized overview provided."}
             </div>
           </div>
@@ -73,40 +71,42 @@ export const ContentModal: React.FC<Props> = ({ item, onClose }) => {
           {/* Full Description / Overview */}
           {item.description && item.description !== item.summary && (
             <div>
-              <h4 className="text-xs uppercase font-mono tracking-wider text-slate-400 mb-2">Detailed Context</h4>
-              <p className="text-slate-400">{item.description}</p>
+              <h4 className="text-xs uppercase font-mono tracking-wider text-paper-muted mb-2 font-bold">
+                Detailed Context
+              </h4>
+              <p className="text-paper-muted font-sans leading-relaxed">{item.description}</p>
             </div>
           )}
 
           {/* Extracted Entities */}
           {item.entities && item.entities.length > 0 && (
             <div>
-              <h4 className="text-xs uppercase font-mono tracking-wider text-slate-400 mb-2">
+              <h4 className="text-xs uppercase font-mono tracking-wider text-paper-muted mb-2 font-bold">
                 Identified Security Entities
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {item.entities.map((e, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/60 border border-slate-800 text-xs font-mono"
+                    className="flex items-center justify-between p-2.5 rounded-lg bg-paper-panel border border-paper-border text-xs font-mono"
                   >
-                    <span className="text-emerald-400 font-semibold">{e.name}</span>
-                    <span className="text-slate-500 uppercase">{e.entity_type}</span>
+                    <span className="text-paper-ink font-semibold">{e.name}</span>
+                    <span className="text-paper-accent text-[11px] uppercase">{e.entity_type}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Video Intelligence Timestamps (IMPLEMENT.md Section 24) */}
+          {/* Video Intelligence Timestamps */}
           {item.video_metadata?.timestamps && item.video_metadata.timestamps.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs uppercase font-mono tracking-wider text-amber-400 font-bold flex items-center gap-1.5">
+                <h4 className="text-xs uppercase font-mono tracking-wider text-paper-accent font-bold flex items-center gap-1.5">
                   <span>◈</span> Video Chapters & Key Timestamps
                 </h4>
                 {item.video_metadata.duration_formatted && (
-                  <span className="text-[11px] font-mono text-slate-400">
+                  <span className="text-[11px] font-mono text-paper-muted">
                     Duration: {item.video_metadata.duration_formatted}
                   </span>
                 )}
@@ -115,20 +115,20 @@ export const ContentModal: React.FC<Props> = ({ item, onClose }) => {
                 {item.video_metadata.timestamps.map((ts, idx) => (
                   <div
                     key={idx}
-                    className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-3 hover:border-amber-500/40 transition-colors"
+                    className="p-2.5 rounded-lg bg-paper-panel border border-paper-border flex items-center justify-between gap-3 hover:border-paper-accent transition-colors"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded bg-amber-950/40 text-amber-300 font-bold border border-amber-500/30 shrink-0">
+                      <span className="px-2 py-0.5 rounded bg-paper-bg text-paper-accent font-bold border border-paper-border shrink-0">
                         {ts.timestamp_str}
                       </span>
-                      <span className="text-slate-200">&rarr; {ts.topic}</span>
+                      <span className="text-paper-ink">&rarr; {ts.topic}</span>
                     </div>
                     {ts.entities && ts.entities.length > 0 && (
                       <div className="flex items-center gap-1 shrink-0">
                         {ts.entities.slice(0, 2).map((ent, eIdx) => (
                           <span
                             key={eIdx}
-                            className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-emerald-400 border border-slate-800"
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-paper-card text-paper-accent border border-paper-border"
                           >
                             {ent}
                           </span>
@@ -141,49 +141,49 @@ export const ContentModal: React.FC<Props> = ({ item, onClose }) => {
             </div>
           )}
 
-          {/* Document Intelligence: Headings & Chunks (IMPLEMENT.md Section 25) */}
+          {/* Document Intelligence: Headings & Chunks */}
           {item.document_metadata && (
-            <div className="p-4 rounded-xl bg-slate-950/90 border border-cyan-900/40 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+            <div className="p-4 rounded-xl bg-paper-panel border border-paper-border space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-paper-border pb-2.5">
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider bg-cyan-950/80 text-cyan-300 border border-cyan-500/30">
+                  <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider bg-paper-card text-paper-accent border border-paper-border">
                     {item.document_metadata.document_type}
                   </span>
-                  <h4 className="text-xs uppercase font-mono tracking-wider text-cyan-400 font-bold">
+                  <h4 className="text-xs uppercase font-mono tracking-wider text-paper-ink font-bold">
                     Document Intelligence
                   </h4>
                 </div>
-                <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
+                <div className="flex items-center gap-3 text-[11px] font-mono text-paper-muted">
                   {item.document_metadata.page_count && (
                     <span>{item.document_metadata.page_count} Pages</span>
                   )}
                   {item.document_metadata.word_count && (
                     <span>{item.document_metadata.word_count.toLocaleString()} Words</span>
                   )}
-                  <span className="px-1.5 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800 uppercase text-[10px]">
+                  <span className="px-1.5 py-0.5 rounded bg-paper-card text-paper-muted border border-paper-border uppercase text-[10px]">
                     {item.document_metadata.retention_mode || "full_text"}
                   </span>
                 </div>
               </div>
 
               {item.document_metadata.authors && item.document_metadata.authors.length > 0 && (
-                <div className="text-xs text-slate-400">
-                  <span className="text-slate-500 font-mono">Authors: </span>
-                  <span className="text-slate-300">{item.document_metadata.authors.join(", ")}</span>
+                <div className="text-xs text-paper-muted">
+                  <span className="font-mono">Authors: </span>
+                  <span className="text-paper-ink">{item.document_metadata.authors.join(", ")}</span>
                 </div>
               )}
 
               {/* Section Outline */}
               {item.document_metadata.section_headings && item.document_metadata.section_headings.length > 0 && (
                 <div>
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-1.5">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-paper-muted block mb-1.5">
                     Section Outline
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {item.document_metadata.section_headings.map((head, hIdx) => (
                       <span
                         key={hIdx}
-                        className="text-[11px] px-2 py-1 rounded bg-slate-900 text-slate-300 border border-slate-800 font-mono"
+                        className="text-[11px] px-2 py-1 rounded bg-paper-card text-paper-ink border border-paper-border font-mono"
                       >
                         § {head}
                       </span>
@@ -195,19 +195,19 @@ export const ContentModal: React.FC<Props> = ({ item, onClose }) => {
               {/* Chunks Preview */}
               {item.document_metadata.chunks_preview && item.document_metadata.chunks_preview.length > 0 && (
                 <div>
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-1.5">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-paper-muted block mb-1.5">
                     Semantic Document Chunks ({item.document_metadata.chunks_count || item.document_metadata.chunks_preview.length} total)
                   </span>
                   <div className="space-y-1.5">
                     {item.document_metadata.chunks_preview.map((chk, cIdx) => (
                       <div
                         key={cIdx}
-                        className="p-2.5 rounded bg-slate-900/60 border border-slate-800/80 text-xs font-mono text-slate-300"
+                        className="p-2.5 rounded bg-paper-card border border-paper-border text-xs font-mono text-paper-ink"
                       >
-                        <span className="text-cyan-400 font-semibold block mb-0.5">
+                        <span className="text-paper-accent font-semibold block mb-0.5">
                           Chunk {chk.chunk_index + 1}: {chk.heading}
                         </span>
-                        <p className="text-slate-400 line-clamp-2">{chk.text}</p>
+                        <p className="text-paper-muted line-clamp-2">{chk.text}</p>
                       </div>
                     ))}
                   </div>
@@ -219,12 +219,12 @@ export const ContentModal: React.FC<Props> = ({ item, onClose }) => {
           {/* Tags */}
           {item.tags && item.tags.length > 0 && (
             <div>
-              <h4 className="text-xs uppercase font-mono tracking-wider text-slate-400 mb-2">Taxonomy Tags</h4>
+              <h4 className="text-xs uppercase font-mono tracking-wider text-paper-muted mb-2 font-bold">Taxonomy Tags</h4>
               <div className="flex flex-wrap gap-2">
                 {item.tags.map((t, idx) => (
                   <span
                     key={idx}
-                    className="text-xs font-mono px-2.5 py-1 rounded bg-slate-800/80 text-cyan-300 border border-cyan-500/20"
+                    className="text-xs font-mono px-2.5 py-1 rounded bg-paper-panel text-paper-ink border border-paper-border"
                   >
                     #{t}
                   </span>
@@ -235,29 +235,31 @@ export const ContentModal: React.FC<Props> = ({ item, onClose }) => {
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between gap-4">
-          <span className="text-xs text-slate-500 font-mono">Provenance ID: #{item.id}</span>
+        <div className="p-4 border-t border-paper-border bg-paper-panel flex items-center justify-between gap-4">
+          <span className="text-xs text-paper-muted font-mono">Provenance ID: #{item.id}</span>
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-mono"
+              className="px-4 py-2 rounded-lg bg-paper-card text-paper-ink hover:bg-paper-border/30 border border-paper-border text-xs font-mono transition-colors"
             >
               Dismiss
             </button>
             <Link
               href={`/content/${item.id}`}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-xs font-mono transition-colors"
+              className="px-4 py-2 rounded-lg bg-paper-card hover:bg-paper-border/30 text-paper-accent border border-paper-border text-xs font-mono transition-colors"
             >
               Full Content Page &rarr;
             </Link>
-            <a
-              href={item.canonical_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs font-mono flex items-center gap-1.5 transition-colors"
-            >
-              Open Original Source &nearr;
-            </a>
+            {item.canonical_url && (
+              <a
+                href={item.canonical_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-lg bg-paper-accent hover:bg-amber-700 text-white font-semibold text-xs font-mono flex items-center gap-1.5 transition-colors"
+              >
+                Open Original Source &nearr;
+              </a>
+            )}
           </div>
         </div>
       </div>

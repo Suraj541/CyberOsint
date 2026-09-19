@@ -25,10 +25,38 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up %s v%s in %s mode...", settings.PROJECT_NAME, settings.VERSION, settings.ENVIRONMENT)
     # Ensure database schema is initialized if in dev/sqlite mode
     try:
+        import app.models  # Ensure all SQLAlchemy models are registered on Base
         Base.metadata.create_all(bind=engine)
         logger.info("Database schema pre-flight check successful.")
     except Exception as exc:
         logger.warning("Database schema check deferred: %s", exc)
+
+    # Synchronize configured connectors.yaml sources into database Source table
+    try:
+        from app.workers.scheduler import sync_connectors_yaml_to_sources
+        from app.database import SessionLocal
+        sync_connectors_yaml_to_sources(SessionLocal)
+    except Exception as exc:
+        logger.warning("Source database synchronization deferred: %s", exc)
+
+    # Synchronize persistent database content into search index
+    try:
+        from services.search import search_service
+        from app.database import SessionLocal
+        with SessionLocal() as db:
+            synced_count = search_service.reindex_all(db)
+        logger.info("Search index synchronization completed on startup (%s records indexed).", synced_count)
+    except Exception as exc:
+        logger.warning("Search index synchronization deferred: %s", exc)
+
+
+    # Start background queue worker
+    try:
+        from services.queue.worker import default_queue_worker
+        default_queue_worker.start_background()
+        logger.info("Background queue worker started.")
+    except Exception as exc:
+        logger.warning("Queue worker start deferred: %s", exc)
 
     # Start periodic background scheduler if configured
     if settings.ENABLE_SCHEDULER:
@@ -38,11 +66,18 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Cleanly stop scheduler on application shutdown
+    # Cleanly stop scheduler and worker on application shutdown
     from app.workers.scheduler import scheduler
     if scheduler.is_running:
         scheduler.stop()
         logger.info("Background periodic scheduler stopped.")
+
+    try:
+        from services.queue.worker import default_queue_worker
+        default_queue_worker.stop()
+        logger.info("Background queue worker stopped.")
+    except Exception:
+        pass
 
     logger.info("Shutting down %s...", settings.PROJECT_NAME)
 
@@ -70,6 +105,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Section 37 Step 36: Security Hardening - OWASP Security Headers Middleware
+from services.security.middleware import SecurityHeadersMiddleware
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Section 41 Step 40: Observability — API error counter & search latency middleware
+from services.observability.middleware import MetricsMiddleware
+app.add_middleware(MetricsMiddleware)
 
 
 @app.get(

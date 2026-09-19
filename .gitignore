@@ -35,7 +35,7 @@ ENV/
 env.bak/
 venv.bak/
 
-# Environment Variables & Secrets
+# Environment Variables & Secrets (IMPLEMENT.md Section 36: Never commit secrets)
 .env
 .env.local
 .env.*.local
@@ -43,6 +43,11 @@ venv.bak/
 *.key
 *.cert
 *.crt
+*.pfx
+*.p12
+*.kdbx
+*.secret
+.secrets_vault.enc
 id_rsa
 id_ed25519
 
@@ -55,15 +60,28 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.tsbuildinfo
 
 # Database & Runtime Data
 *.sqlite
 *.sqlite3
 *.db
+*.sqlite.gz
+*.gz
+backups/
+apps/api/backups/
 data/
 postgres_data/
 redis_data/
 opensearch_data/
+
+# Temporary & Scratch Files
+scratch/
+scratch_*.py
+test_results.txt
+*.tmp
+*.temp
+
 
 # Unit test / coverage reports
 htmlcov/

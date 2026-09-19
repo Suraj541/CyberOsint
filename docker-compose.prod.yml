@@ -1,0 +1,249 @@
+version: '3.8'
+
+# ==============================================================================
+# Cybersecurity OSINT Platform — Production Deployment Stack
+# Section 44 (Step 43): Deployment
+#
+# Architecture:
+#   - Frontend: Next.js (SSR / Static Cache / React 19)
+#   - API Gateway / Core: FastAPI (ASGI Production Cluster)
+#   - Ingestion Worker Cluster: Async Celery/Queue Workers
+#   - Managed DB Tier: PostgreSQL 16 (SSL, Pooled, Automated Backups)
+#   - In-Memory Cache & Broker: Redis 7 Cluster (AOF enabled, LRU eviction)
+#   - Search & Analytics: OpenSearch 2.11 (Production Cluster / Semantic Vector Plugin)
+#   - Object Storage: S3 / MinIO (Sandboxed Documents & Ingestion Artifacts)
+#   - Reverse Proxy: Traefik / Nginx (TLS Termination, Rate Limiting, Security Headers)
+# ==============================================================================
+
+services:
+  # ── Reverse Proxy & Edge Security ───────────────────────────────────────────
+  proxy:
+    image: nginx:alpine-slim
+    container_name: cyber-osint-prod-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/certs:/etc/nginx/certs:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    networks:
+      - cyber_osint_prod_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ── Next.js Frontend ────────────────────────────────────────────────────────
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.osint.local/api/v1}
+    container_name: cyber-osint-prod-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - cyber_osint_prod_net
+
+  # ── FastAPI Backend ─────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: cyber-osint-prod-api
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres_secure_pass@postgres:5432/cyber_osint}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      SEARCH_URL: ${SEARCH_URL:-http://opensearch:9200}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio_prod_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_prod_secure_password}
+      BACKUP_DIR: /backups
+      SECRET_KEY: ${SECRET_KEY:-change_this_in_production_super_secret_key_32bytes}
+    expose:
+      - "8000"
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4096M
+        reservations:
+          cpus: '1.0'
+          memory: 1024M
+    networks:
+      - cyber_osint_prod_net
+
+  # ── Ingestion & Background Scheduler Worker ─────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: cyber-osint-prod-worker
+    restart: unless-stopped
+    command: ["python", "-m", "app.workers.scheduler"]
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres_secure_pass@postgres:5432/cyber_osint}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      SEARCH_URL: ${SEARCH_URL:-http://opensearch:9200}
+      BACKUP_DIR: /backups
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+    networks:
+      - cyber_osint_prod_net
+
+  # ── PostgreSQL 16 (Primary DB) ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: cyber-osint-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cyber_osint}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_secure_pass}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-cyber_osint}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4096M
+    networks:
+      - cyber_osint_prod_net
+
+  # ── Redis 7 (Cache & Task Queue) ────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: cyber-osint-prod-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 1024mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - cyber_osint_prod_net
+
+  # ── OpenSearch 2.11 (Full-Text & Vector Search) ──────────────────────────────
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: cyber-osint-prod-opensearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
+      - plugins.security.disabled=true
+    volumes:
+      - opensearch_prod_data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - cyber_osint_prod_net
+
+  # ── MinIO / S3 Object Storage ───────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: cyber-osint-prod-minio
+    restart: unless-stopped
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio_prod_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_prod_secure_password}
+    volumes:
+      - minio_prod_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - cyber_osint_prod_net
+
+networks:
+  cyber_osint_prod_net:
+    driver: bridge
+
+volumes:
+  postgres_prod_data:
+    driver: local
+  redis_prod_data:
+    driver: local
+  opensearch_prod_data:
+    driver: local
+  minio_prod_data:
+    driver: local

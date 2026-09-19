@@ -34,7 +34,10 @@ def list_sources(
     db: Session = Depends(get_db),
 ) -> List[SourceResponse]:
     """List all registered intelligence sources with pagination and category filters."""
-    return source_registry_service.list_sources(
+    from sqlalchemy import func
+    from app.models.content import Content
+
+    sources = source_registry_service.list_sources(
         db,
         skip=skip,
         limit=limit,
@@ -42,6 +45,49 @@ def list_sources(
         source_type=source_type,
         category=category,
     )
+
+    source_ids = [s.id for s in sources]
+    counts_map = dict(
+        db.query(Content.source_id, func.count(Content.id))
+        .filter(Content.source_id.in_(source_ids))
+        .group_by(Content.source_id)
+        .all()
+    ) if source_ids else {}
+
+    results: List[SourceResponse] = []
+    for s in sources:
+        cnt = counts_map.get(s.id, 0)
+        c_type = s.access_method or s.source_type or "rss"
+        if "cve" in s.name.lower() or "cve" in s.url.lower():
+            c_type = "cve"
+        elif "github" in s.name.lower() or "github" in s.url.lower():
+            c_type = "github"
+        elif "cert" in s.name.lower() or "cert" in s.url.lower():
+            c_type = "cert"
+
+        results.append(
+            SourceResponse(
+                id=s.id,
+                name=s.name,
+                url=s.url,
+                source_type=s.source_type,
+                platform=s.platform,
+                category=s.category,
+                language=s.language,
+                access_method=s.access_method,
+                reliability_score=s.reliability_score,
+                active=s.active,
+                last_checked=s.last_checked,
+                created_at=s.created_at,
+                updated_at=s.updated_at,
+                is_active=bool(s.active),
+                connector_type=c_type,
+                fetch_interval_minutes=30,
+                last_fetched_at=s.last_checked.isoformat() if s.last_checked else None,
+                items_count=cnt,
+            )
+        )
+    return results
 
 
 @router.post(

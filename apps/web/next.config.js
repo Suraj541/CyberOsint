@@ -9,6 +9,20 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/videos",
+        destination: "/",
+        permanent: false,
+      },
+      {
+        source: "/videos/:path*",
+        destination: "/",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

@@ -56,12 +56,53 @@ services:
     networks:
       - cyber_osint_network
 
+  minio:
+    image: minio/minio:latest
+    container_name: cyber-osint-minio
+    restart: unless-stopped
+    command: server /data --console-address "0.0.0.0:9001"
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    networks:
+      - cyber_osint_network
+
+  worker:
+    build: ./apps/api
+    container_name: cyber-osint-worker
+    restart: unless-stopped
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres_secure_pass@postgres:5432/cyber_osint}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      SEARCH_URL: ${SEARCH_URL:-http://opensearch:9200}
+      AI_API_KEY: ${AI_API_KEY:-your-ai-api-key-here}
+      VIDEO_API_KEY: ${VIDEO_API_KEY:-your-video-api-key-here}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-your_github_token_here}
+      BACKUP_DIR: /backups
+    volumes:
+      - ./backups:/backups:cached
+    depends_on:
+      - postgres
+      - redis
+      - opensearch
+      - minio
+    networks:
+      - cyber_osint_network
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
   opensearch_data:
+    driver: local
+  minio_data:
     driver: local
 
 networks:

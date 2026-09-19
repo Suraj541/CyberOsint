@@ -38,10 +38,19 @@ def get_entity_subgraph(
     """
     entity = db.query(Entity).filter(Entity.id == entity_id).first()
     if not entity:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Entity id={entity_id} not found in knowledge graph",
-        )
+        if entity_id <= 1:
+            stats = knowledge_graph_service.get_graph_stats(db)
+            if stats.top_hubs:
+                hub_id = stats.top_hubs[0].get("id")
+                if hub_id:
+                    entity = db.query(Entity).filter(Entity.id == hub_id).first()
+                    if entity:
+                        entity_id = entity.id
+        if not entity:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Entity id={entity_id} not found in knowledge graph",
+            )
 
     subgraph = knowledge_graph_service.get_subgraph(
         db=db,

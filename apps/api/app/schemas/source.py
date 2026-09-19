@@ -50,4 +50,11 @@ class SourceResponse(SourceBase):
     created_at: datetime
     updated_at: datetime
 
+    # Extended compatibility fields for frontend SourceConnectorItem
+    is_active: bool = Field(default=True, description="Active status indicator")
+    connector_type: str = Field(default="rss", description="Connector category (rss, cve, github, cert, custom)")
+    fetch_interval_minutes: int = Field(default=30, description="Polling interval in minutes")
+    last_fetched_at: Optional[str] = Field(default=None, description="ISO timestamp of last execution")
+    items_count: int = Field(default=0, description="Count of ingested intelligence items")
+
     model_config = ConfigDict(from_attributes=True)

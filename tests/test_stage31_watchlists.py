@@ -10,6 +10,7 @@ Verifies:
 
 import sys
 import unittest
+import uuid
 from pathlib import Path
 
 # Add project root and apps/api to path
@@ -206,7 +207,7 @@ class TestWatchlistsSection32(unittest.TestCase):
 
     def test_06_fastapi_rest_endpoints(self):
         """Verify all FastAPI REST endpoints for Section 32."""
-        session = "api_test_session_wl"
+        session = f"api_test_session_wl_{uuid.uuid4().hex[:8]}"
 
         # 1. GET /api/v1/watchlists (lists auto-seeded default watchlists)
         res_list = self.client.get(f"/api/v1/watchlists?session_id={session}")

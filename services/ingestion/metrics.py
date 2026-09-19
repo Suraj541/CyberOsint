@@ -35,6 +35,7 @@ class IngestionMetrics:
     validated_count: int = 0
     normalized_count: int = 0
     ingested_count: int = 0
+    updated_count: int = 0
     duplicates_skipped: int = 0
     errors_count: int = 0
     duration_ms: float = 0.0
@@ -60,6 +61,18 @@ class IngestionMetrics:
             "title": title[:100],
             "url": url,
             "content_hash": content_hash,
+            "action": "inserted",
+        })
+
+    def record_updated(self, content_id: int, title: str, url: str, content_hash: str) -> None:
+        """Record a successfully updated existing content item (e.g. modified CVE)."""
+        self.updated_count += 1
+        self.items.append({
+            "id": content_id,
+            "title": title[:100],
+            "url": url,
+            "content_hash": content_hash,
+            "action": "updated",
         })
 
     def record_duplicate(self, content_hash: str, title: str) -> None:
@@ -73,9 +86,9 @@ class IngestionMetrics:
 
         if status_override:
             self.status = status_override
-        elif self.errors_count > 0 and self.ingested_count > 0:
+        elif self.errors_count > 0 and (self.ingested_count > 0 or self.updated_count > 0):
             self.status = "partial"
-        elif self.errors_count > 0 and self.ingested_count == 0 and self.duplicates_skipped == 0:
+        elif self.errors_count > 0 and self.ingested_count == 0 and self.updated_count == 0 and self.duplicates_skipped == 0:
             self.status = "failed"
         elif self.discovered_count == 0:
             self.status = "empty"
@@ -94,6 +107,7 @@ class IngestionMetrics:
             "validated_count": self.validated_count,
             "normalized_count": self.normalized_count,
             "ingested_count": self.ingested_count,
+            "updated_count": self.updated_count,
             "duplicates_skipped": self.duplicates_skipped,
             "errors_count": self.errors_count,
             "duration_ms": self.duration_ms,

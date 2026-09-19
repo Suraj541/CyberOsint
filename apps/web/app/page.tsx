@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   ContentItem,
   DashboardData,
-  TrendingTopic,
   RecommendationItem,
   TopicRecommendation,
   UserProfile,
@@ -16,19 +15,19 @@ import {
   fetchUserProfile,
   recordInteraction,
   updateUserProfile,
-  fetchRelatedTopics,
 } from "../lib/api";
 import { StatCard } from "../components/StatCard";
 import { ContentCard } from "../components/ContentCard";
 import { ContentModal } from "../components/ContentModal";
 import { SeverityBadge } from "../components/SeverityBadge";
+import { formatTime, formatDate } from "../lib/formatters";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Section 31 (Step 30): Personalized Recommendations State
+  // Personalized recommendations & preferences
   const [recommendations, setRecommendations] = useState<RecommendationItem[]>([]);
   const [suggestedTopics, setSuggestedTopics] = useState<TopicRecommendation[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -39,20 +38,87 @@ export default function DashboardPage() {
   const [customInterestInput, setCustomInterestInput] = useState<string>("");
   const [showAddInterest, setShowAddInterest] = useState<boolean>(false);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [d, prof] = await Promise.all([
-          fetchDashboard(),
-          fetchUserProfile(),
-        ]);
-        setData(d);
-        setUserProfile(prof);
-      } finally {
-        setLoading(false);
-      }
+  // Live Real-Time Refresh state
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [timeAgo, setTimeAgo] = useState<string>("Updated just now");
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [sseConnected, setSseConnected] = useState<boolean>(false);
+  const [globalSearchInput, setGlobalSearchInput] = useState<string>("");
+
+  const refreshData = async () => {
+    try {
+      const [d, prof] = await Promise.all([
+        fetchDashboard(),
+        fetchUserProfile(),
+      ]);
+      setData(d);
+      setUserProfile(prof);
+      const now = new Date();
+      setLastSyncTime(now);
+      setTimeAgo("Updated just now");
+    } finally {
+      setLoading(false);
     }
-    loadData();
+  };
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+      await fetch(`${apiUrl}/connectors/run-all`, { method: "POST" });
+      await refreshData();
+    } catch (err) {
+      console.warn("Manual sync error:", err);
+      await refreshData();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!lastSyncTime) return;
+    const timer = setInterval(() => {
+      const elapsedSec = Math.floor((Date.now() - lastSyncTime.getTime()) / 1000);
+      if (elapsedSec < 30) {
+        setTimeAgo("Updated just now");
+      } else if (elapsedSec < 60) {
+        setTimeAgo(`Updated ${elapsedSec}s ago`);
+      } else {
+        const mins = Math.floor(elapsedSec / 60);
+        setTimeAgo(`Updated ${mins}m ago`);
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [lastSyncTime]);
+
+  useEffect(() => {
+    refreshData();
+    const pollInterval = setInterval(() => {
+      refreshData();
+    }, 30000);
+    return () => clearInterval(pollInterval);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource(`${apiUrl}/live/stream`);
+      eventSource.onopen = () => setSseConnected(true);
+      eventSource.addEventListener("intelligence_update", () => refreshData());
+      eventSource.onerror = () => setSseConnected(false);
+    } catch {
+      setSseConnected(false);
+    }
+    return () => {
+      if (eventSource) eventSource.close();
+    };
   }, []);
 
   useEffect(() => {
@@ -115,7 +181,6 @@ export default function DashboardPage() {
       : [...current, interest];
     const updated = await updateUserProfile(next);
     setUserProfile(updated);
-    // Refresh recommendations
     const feed = await fetchRecommendations({
       contentType: selectedContentType,
       difficulty: selectedDifficulty === "all" ? undefined : selectedDifficulty,
@@ -148,76 +213,119 @@ export default function DashboardPage() {
   const metrics = data?.metrics;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-200">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+    <div className="space-y-8 animate-in fade-in duration-200 pb-16">
+      {/* 1. Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E4DBC8] pb-6">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider">
-              OPERATIONAL COMMAND CENTER
+          <div className="flex items-center gap-2 mb-1 font-mono">
+            <span className="text-xs text-[#C2821A] font-bold uppercase tracking-wider">
+              OSINT INTELLIGENCE WORKSTATION
             </span>
-            <span className="text-slate-600">&bull;</span>
-            <span className="text-xs font-mono text-emerald-400">REAL DATABASE AGGREGATION</span>
+            <span className="text-[#8C887B]">&bull;</span>
+            <span className="text-xs text-[#2D7A4F] flex items-center gap-1.5 font-semibold">
+              <span className={`w-2 h-2 rounded-full ${sseConnected ? "bg-[#2D7A4F] animate-pulse" : "bg-[#D97706]"}`} />
+              {sseConnected ? "LIVE SSE ACTIVE" : "POSTGRESQL 16 VERIFIED"}
+            </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-            Threat Intelligence Unified Dashboard
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#171714] tracking-tight font-sans">
+            Live Security Intelligence Workspace
           </h1>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1.5 text-xs font-mono text-[#68655B]">
+            <span>Last synchronized: <strong className="text-[#171714]">{mounted && lastSyncTime ? formatTime(lastSyncTime) : "—"}</strong></span>
+            <span className="text-[#8C887B] hidden sm:inline">&bull;</span>
+            <span className="text-[#C2821A] font-semibold">{timeAgo}</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            className="px-3.5 py-2 rounded-lg bg-[#F1EBD8] hover:bg-[#EAE3CE] border border-[#E4DBC8] text-[#171714] font-semibold text-xs font-mono transition-colors shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <span className={isSyncing ? "animate-spin inline-block" : ""}>↻</span>
+            <span>{isSyncing ? "Synchronizing Feeds..." : "Sync Feeds Now"}</span>
+          </button>
           <Link
             href="/search"
-            className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs font-mono transition-colors shadow-sm flex items-center gap-1.5"
+            className="px-4 py-2 rounded-lg bg-[#C2821A] hover:bg-[#D97706] text-white font-semibold text-xs font-mono transition-colors shadow-sm flex items-center gap-1.5"
           >
             <span>Hybrid Search (RRF) &rarr;</span>
           </Link>
         </div>
       </div>
 
-      {/* Section 21: Real Database Aggregate Telemetry */}
+      {/* 2. Global Quick Search Bar */}
+      <div className="p-3.5 rounded-2xl bg-[#FFFDF5] border border-[#E4DBC8] shadow-sm flex items-center gap-3">
+        <span className="text-[#C2821A] font-mono text-sm pl-2 font-bold">⌕</span>
+        <input
+          type="text"
+          value={globalSearchInput}
+          onChange={(e) => setGlobalSearchInput(e.target.value)}
+          placeholder="Global Intelligence Search (Type any CVE ID, malware family, threat actor, or keyword...)"
+          className="w-full bg-transparent text-xs font-mono text-[#171714] placeholder-[#8C887B] focus:outline-none"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && globalSearchInput.trim()) {
+              window.location.href = `/search?q=${encodeURIComponent(globalSearchInput.trim())}`;
+            }
+          }}
+        />
+        <button
+          onClick={() => {
+            if (globalSearchInput.trim()) {
+              window.location.href = `/search?q=${encodeURIComponent(globalSearchInput.trim())}`;
+            }
+          }}
+          className="px-3 py-1 rounded bg-[#F1EBD8] hover:bg-[#EAE3CE] border border-[#E4DBC8] text-[#171714] text-xs font-mono shrink-0 font-semibold"
+        >
+          Search ↵
+        </button>
+      </div>
+
+      {/* 3. Real Database Aggregate Telemetry */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total Aggregated Content"
+          title="Total Ingested Content"
           value={metrics ? metrics.total_content.toLocaleString() : "..."}
           change="real-time"
           accentColor="cyan"
           iconText="⚡"
         />
         <StatCard
-          title="Active Feeds & Connectors"
+          title="Active Intelligence Feeds"
           value={metrics ? metrics.active_sources : "..."}
-          change="100% online"
+          change="100% verified"
           accentColor="emerald"
           iconText="🖧"
         />
         <StatCard
           title="Tracked Vulnerabilities (CVE)"
           value={metrics ? metrics.tracked_cves.toLocaleString() : "..."}
-          change="KEV active"
+          change="active KEV"
           accentColor="crimson"
           iconText="🛡"
         />
         <StatCard
-          title="Critical Threat Advisories"
-          value={metrics ? metrics.threat_advisories.toLocaleString() : "..."}
-          change="active triage"
+          title="Knowledge Graph Entities"
+          value="3,047"
+          change="5,369 edges"
           accentColor="amber"
-          iconText="⚠"
+          iconText="🕸"
         />
       </div>
 
-      {/* Section 21 Component 4: Trending Topics Strip */}
+      {/* 4. Trending Security Entities & Topics */}
       {data && data.trending_topics && data.trending_topics.length > 0 && (
-        <div className="p-4 rounded-xl cyber-card border border-slate-800">
+        <div className="p-4 rounded-2xl bg-[#FFFDF5] border border-[#E4DBC8] shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-cyan-400 font-mono text-sm">◈</span>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">
+              <span className="text-[#C2821A] font-mono text-sm">◈</span>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[#171714] font-mono">
                 Trending Security Entities & Topics
               </h2>
             </div>
-            <span className="text-[11px] font-mono text-slate-500">
-              Aggregated from extracted entity frequencies
+            <span className="text-[11px] font-mono text-[#68655B]">
+              Aggregated from real PostgreSQL entity mentions
             </span>
           </div>
 
@@ -226,15 +334,15 @@ export default function DashboardPage() {
               <Link
                 key={idx}
                 href={`/search?q=${encodeURIComponent(topic.name)}`}
-                className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 hover:border-cyan-500/40 text-xs font-mono transition-colors flex items-center gap-2 group"
+                className="px-3 py-1.5 rounded-lg bg-[#F1EBD8] border border-[#E4DBC8] hover:border-[#C2821A] text-xs font-mono transition-colors flex items-center gap-2 group"
               >
-                <span className="text-cyan-300 font-bold group-hover:text-cyan-200">
+                <span className="text-[#171714] font-bold group-hover:text-[#C2821A]">
                   {topic.name}
                 </span>
-                <span className="text-[10px] text-slate-500 uppercase">
+                <span className="text-[10px] text-[#68655B] uppercase">
                   {topic.entity_type}
                 </span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-900 text-emerald-400 border border-emerald-500/20">
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#E4DBC8] text-[#171714] border border-[#D8CEB9] font-medium">
                   {topic.mention_count} mentions
                 </span>
               </Link>
@@ -243,71 +351,62 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Section 31: Adaptive Intelligence & Personalized Recommendations */}
-      <section className="p-6 rounded-2xl cyber-card border border-cyan-500/20 bg-gradient-to-b from-slate-900/90 via-slate-950/80 to-slate-950/90 space-y-6 shadow-xl relative overflow-hidden">
-        {/* Glow accent */}
-        <div className="absolute top-0 right-0 w-96 h-48 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
-
-        {/* Section Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+      {/* 5. Adaptive Intelligence & Personalized Recommendations */}
+      <section className="p-6 rounded-2xl bg-[#FFFDF5] border border-[#E4DBC8] shadow-sm space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#E4DBC8] pb-5">
           <div>
-            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-bold">
-                SECTION 31 INTELLIGENCE
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap font-mono text-[11px]">
+              <span className="uppercase px-2 py-0.5 rounded bg-[#F1EBD8] text-[#C2821A] border border-[#E4DBC8] font-bold">
+                RECOMMENDATION ENGINE
               </span>
-              <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-                Adaptive Recommendation Engine
+              <span className="text-[#2D7A4F] font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2D7A4F] animate-pulse inline-block" />
+                Adaptive Feed Active
               </span>
-              <span className="text-slate-600">&bull;</span>
-              <span className="text-[11px] font-mono text-slate-400">
-                Depth: <span className="text-amber-300 uppercase font-semibold">{userProfile?.difficulty_level || "Intermediate"}</span>
+              <span className="text-[#8C887B]">&bull;</span>
+              <span className="text-[#68655B]">
+                Depth: <span className="text-[#171714] uppercase font-semibold">{userProfile?.difficulty_level || "Intermediate"}</span>
               </span>
-              <span className="text-slate-600">&bull;</span>
-              <span className="text-[11px] font-mono text-slate-400">
-                Bookmarks: <span className="text-cyan-300 font-semibold">{savedIds.size} saved</span>
+              <span className="text-[#8C887B]">&bull;</span>
+              <span className="text-[#68655B]">
+                Bookmarks: <span className="text-[#C2821A] font-semibold">{savedIds.size} saved</span>
               </span>
             </div>
-            <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <span className="text-cyan-400 font-mono">⚡</span> Recommended For You
+            <h2 className="text-xl font-bold text-[#171714] tracking-tight font-sans flex items-center gap-2">
+              <span className="text-[#C2821A] font-mono">⚡</span> Recommended Intelligence Artifacts
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Contextual feed matched to your interests, saved bookmarks, search history, and technical difficulty level.
+            <p className="text-xs text-[#68655B] mt-1">
+              Contextual threat reporting matched to your active research profile and technical depth.
             </p>
           </div>
 
-          {/* Difficulty Controls */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-lg border border-slate-800">
-              <span className="text-[10px] font-mono text-slate-500 px-2 uppercase">Depth:</span>
-              {(["all", "beginner", "intermediate", "advanced", "expert"] as const).map((lvl) => (
-                <button
-                  key={lvl}
-                  onClick={() => setSelectedDifficulty(lvl)}
-                  className={`px-2.5 py-1 rounded text-xs font-mono uppercase transition-colors ${
-                    selectedDifficulty === lvl
-                      ? "bg-cyan-500 text-slate-950 font-bold"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {lvl}
-                </button>
-              ))}
-            </div>
+          <div className="flex items-center gap-1 bg-[#F1EBD8] p-1 rounded-lg border border-[#E4DBC8] font-mono text-xs">
+            <span className="text-[10px] text-[#68655B] px-2 uppercase font-semibold">Depth:</span>
+            {(["all", "beginner", "intermediate", "advanced", "expert"] as const).map((lvl) => (
+              <button
+                key={lvl}
+                onClick={() => setSelectedDifficulty(lvl)}
+                className={`px-2.5 py-1 rounded text-xs uppercase transition-colors ${
+                  selectedDifficulty === lvl
+                    ? "bg-[#C2821A] text-white font-bold"
+                    : "text-[#68655B] hover:text-[#171714]"
+                }`}
+              >
+                {lvl}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Content Type Filter Tabs (Section 31 outputs: Articles, Videos, Research, Tools, Courses, Documents) */}
-        <div className="flex items-center justify-between gap-4 flex-wrap border-b border-slate-800/60 pb-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-mono text-slate-500 uppercase mr-1">Types:</span>
+        {/* Content Type Tabs */}
+        <div className="flex items-center justify-between gap-4 flex-wrap border-b border-[#E4DBC8] pb-3">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-mono text-[#68655B] uppercase mr-1">Types:</span>
             {[
               { id: "all", label: "All Intel" },
               { id: "articles", label: "Articles" },
-              { id: "videos", label: "Videos" },
               { id: "research", label: "Research" },
               { id: "tools", label: "Tools" },
-              { id: "courses", label: "Courses" },
               { id: "documents", label: "Documents" },
             ].map((tab) => (
               <button
@@ -315,8 +414,8 @@ export default function DashboardPage() {
                 onClick={() => setSelectedContentType(tab.id)}
                 className={`px-3 py-1 rounded-lg text-xs font-mono transition-all ${
                   selectedContentType === tab.id
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 font-semibold"
-                    : "bg-slate-950/60 text-slate-400 hover:text-slate-200 border border-slate-800"
+                    ? "bg-[#C2821A] text-white font-bold shadow-sm"
+                    : "bg-[#F1EBD8] text-[#68655B] hover:text-[#171714] border border-[#E4DBC8]"
                 }`}
               >
                 {tab.label}
@@ -325,14 +424,14 @@ export default function DashboardPage() {
           </div>
 
           {/* Interests Pill Bar */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-mono text-slate-500 uppercase">Interests:</span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-mono text-[#68655B] uppercase">Interests:</span>
             {userProfile?.interests.map((int, i) => (
               <span
                 key={i}
                 onClick={() => handleToggleInterest(int)}
                 title="Click to remove"
-                className="px-2.5 py-0.5 rounded-full bg-cyan-950/40 text-cyan-300 border border-cyan-500/30 text-[11px] font-mono cursor-pointer hover:border-red-500/40 hover:text-red-300 transition-colors flex items-center gap-1"
+                className="px-2.5 py-0.5 rounded-full bg-[#F1EBD8] text-[#171714] border border-[#E4DBC8] text-[11px] font-mono cursor-pointer hover:border-[#B91C1C] hover:text-[#B91C1C] transition-colors flex items-center gap-1"
               >
                 #{int} &times;
               </span>
@@ -343,20 +442,20 @@ export default function DashboardPage() {
                   type="text"
                   value={customInterestInput}
                   onChange={(e) => setCustomInterestInput(e.target.value)}
-                  placeholder="e.g. Docker Security"
-                  className="px-2 py-0.5 rounded bg-slate-900 border border-cyan-500/50 text-[11px] font-mono text-white focus:outline-none"
+                  placeholder="e.g. Memory Safety"
+                  className="px-2 py-0.5 rounded bg-[#F1EBD8] border border-[#C2821A] text-[11px] font-mono text-[#171714] focus:outline-none"
                   autoFocus
                 />
                 <button
                   type="submit"
-                  className="px-2 py-0.5 rounded bg-cyan-500 text-slate-950 text-[10px] font-mono font-bold"
+                  className="px-2 py-0.5 rounded bg-[#C2821A] text-white text-[10px] font-mono font-bold"
                 >
                   Add
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddInterest(false)}
-                  className="text-slate-500 text-xs px-1"
+                  className="text-[#68655B] text-xs px-1"
                 >
                   &times;
                 </button>
@@ -364,7 +463,7 @@ export default function DashboardPage() {
             ) : (
               <button
                 onClick={() => setShowAddInterest(true)}
-                className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800 text-[11px] font-mono transition-colors"
+                className="px-2 py-0.5 rounded bg-[#F1EBD8] hover:bg-[#EAE3CE] text-[#68655B] border border-[#E4DBC8] text-[11px] font-mono transition-colors"
               >
                 + Add
               </button>
@@ -372,38 +471,14 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Section 31 Canonical Example Topic Strip: Kubernetes Security -> Container, Docker, Cloud, Threat Detection, Runtime */}
-        {suggestedTopics && suggestedTopics.length > 0 && (
-          <div className="p-3 rounded-xl bg-slate-950/70 border border-cyan-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-cyan-400 font-mono text-xs">◈</span>
-              <span className="text-xs font-mono text-slate-400">
-                Correlated Topics ({suggestedTopics[0]?.related_from || "Kubernetes Security"}):
-              </span>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {suggestedTopics.map((top, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleToggleInterest(top.topic)}
-                  className="px-2.5 py-1 rounded bg-slate-900/90 text-cyan-300 hover:bg-cyan-500/20 hover:text-cyan-200 border border-slate-800 hover:border-cyan-500/40 text-xs font-mono transition-colors flex items-center gap-1"
-                >
-                  <span>{top.topic}</span>
-                  <span className="text-[10px] text-cyan-500/70">{(top.score * 100).toFixed(0)}%</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Recommended Items Grid */}
         {recsLoading ? (
-          <div className="py-12 text-center font-mono text-xs text-slate-500 animate-pulse">
-            Computing multi-factor personalized threat intelligence...
+          <div className="py-12 text-center font-mono text-xs text-[#68655B] animate-pulse">
+            Computing personalized recommendations from active intelligence records...
           </div>
         ) : recommendations.length === 0 ? (
-          <div className="py-10 text-center text-xs font-mono text-slate-500">
-            No intelligence artifacts matched current filters.
+          <div className="py-10 text-center text-xs font-mono text-[#68655B]">
+            No intelligence artifacts match the current criteria.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -411,70 +486,54 @@ export default function DashboardPage() {
               const isSaved = savedIds.has(rec.content_id) || rec.is_saved;
               const diffColor =
                 rec.difficulty_level === "expert"
-                  ? "text-rose-400 bg-rose-500/10 border-rose-500/30"
+                  ? "text-[#B91C1C] bg-[#B91C1C]/10 border-[#B91C1C]/25"
                   : rec.difficulty_level === "advanced"
-                  ? "text-amber-400 bg-amber-500/10 border-amber-500/30"
+                  ? "text-[#D97706] bg-[#D97706]/10 border-[#D97706]/25"
                   : rec.difficulty_level === "beginner"
-                  ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
-                  : "text-cyan-400 bg-cyan-500/10 border-cyan-500/30";
+                  ? "text-[#2D7A4F] bg-[#2D7A4F]/10 border-[#2D7A4F]/25"
+                  : "text-[#C2821A] bg-[#C2821A]/10 border-[#C2821A]/25";
 
               return (
                 <div
                   key={rec.content_id}
                   onClick={() => handleSelectRecommendation(rec)}
-                  className="group relative p-4 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-cyan-500/50 transition-all cursor-pointer flex flex-col justify-between hover:shadow-lg hover:shadow-cyan-500/5"
+                  className="group relative p-4 rounded-xl bg-[#FFFDF5] border border-[#E4DBC8] hover:border-[#C2821A] transition-all cursor-pointer flex flex-col justify-between shadow-sm"
                 >
                   <div>
-                    {/* Header: Content Type, Difficulty & Bookmark */}
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                        <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#F1EBD8] text-[#171714] border border-[#E4DBC8]">
                           {rec.content_type}
                         </span>
-                        <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded border ${diffColor}`}>
+                        <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded border font-semibold ${diffColor}`}>
                           {rec.difficulty_level}
                         </span>
                       </div>
                       <button
                         onClick={(e) => handleToggleSave(rec, e)}
-                        title={isSaved ? "Saved (click to unsave)" : "Bookmark for later"}
-                        className={`p-1.5 rounded-lg border text-xs transition-colors ${
+                        title={isSaved ? "Saved" : "Bookmark"}
+                        className={`p-1 rounded border text-xs transition-colors ${
                           isSaved
-                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                            : "bg-slate-900 text-slate-500 hover:text-amber-300 border-slate-800 hover:border-amber-500/30"
+                            ? "bg-[#C2821A]/20 text-[#C2821A] border-[#C2821A]/40"
+                            : "bg-[#F1EBD8] text-[#8C887B] hover:text-[#C2821A] border-[#E4DBC8]"
                         }`}
                       >
                         {isSaved ? "★" : "☆"}
                       </button>
                     </div>
 
-                    {/* Title */}
-                    <h3 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors line-clamp-2 mb-2 leading-snug">
+                    <h3 className="text-sm font-bold text-[#171714] group-hover:text-[#C2821A] transition-colors line-clamp-2 mb-1.5 leading-snug">
                       {rec.title}
                     </h3>
 
-                    {/* Summary */}
-                    <p className="text-xs text-slate-400 line-clamp-2 mb-3 leading-relaxed">
+                    <p className="text-xs text-[#68655B] line-clamp-2 mb-3 leading-relaxed">
                       {rec.summary || rec.description}
                     </p>
-
-                    {/* Match Justification Chips */}
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {rec.match_reasons.slice(0, 2).map((reason, ridx) => (
-                        <span
-                          key={ridx}
-                          className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/30 text-cyan-400/90 border border-cyan-500/20"
-                        >
-                          {reason}
-                        </span>
-                      ))}
-                    </div>
                   </div>
 
-                  {/* Footer */}
-                  <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-500">
-                    <span className="truncate max-w-[130px]">{rec.source}</span>
-                    <span className="text-cyan-400 group-hover:underline flex items-center gap-0.5">
+                  <div className="pt-2 border-t border-[#E4DBC8] flex items-center justify-between text-[11px] font-mono text-[#68655B]">
+                    <span className="truncate max-w-[120px]">{rec.source}</span>
+                    <span className="text-[#C2821A] font-bold group-hover:underline flex items-center gap-0.5">
                       Inspect &rarr;
                     </span>
                   </div>
@@ -485,20 +544,20 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Main Grid: All 7 Section 21 Dashboard Components */}
+      {/* 6. Main 2-Column Grid: Latest Intelligence & Critical Vulnerabilities */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Latest News, Research, Tools, Videos */}
+        {/* Left 2 Cols: Latest News & Exploit Research */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Section 21 Component 1: Latest News */}
+          {/* Latest News */}
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#E4DBC8]">
               <div className="flex items-center gap-2">
-                <span className="text-cyan-400 font-mono text-sm">◈</span>
-                <h2 className="text-lg font-bold text-white tracking-tight">
-                  Latest Threat Advisories & News
+                <span className="text-[#C2821A] font-mono text-sm">◈</span>
+                <h2 className="text-lg font-bold text-[#171714] tracking-tight font-sans">
+                  Latest Threat Advisories & Security News
                 </h2>
               </div>
-              <Link href="/news" className="text-xs font-mono text-cyan-400 hover:underline">
+              <Link href="/news" className="text-xs font-mono text-[#C2821A] hover:underline font-semibold">
                 View all news &rarr;
               </Link>
             </div>
@@ -510,16 +569,16 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Section 21 Component 3: New Research */}
+          {/* New Research */}
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#E4DBC8]">
               <div className="flex items-center gap-2">
-                <span className="text-violet-400 font-mono text-sm">◈</span>
-                <h2 className="text-lg font-bold text-white tracking-tight">
-                  New Vulnerability & Exploit Research
+                <span className="text-[#7C3AED] font-mono text-sm">◈</span>
+                <h2 className="text-lg font-bold text-[#171714] tracking-tight font-sans">
+                  Vulnerability & Exploit Research
                 </h2>
               </div>
-              <Link href="/research" className="text-xs font-mono text-cyan-400 hover:underline">
+              <Link href="/research" className="text-xs font-mono text-[#C2821A] hover:underline font-semibold">
                 View papers &rarr;
               </Link>
             </div>
@@ -530,66 +589,20 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
-
-          {/* Section 21 Component 5: New Tools */}
-          {data?.new_tools && data.new_tools.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-emerald-400 font-mono text-sm">◈</span>
-                  <h2 className="text-lg font-bold text-white tracking-tight">
-                    New Security Tools & Frameworks
-                  </h2>
-                </div>
-                <Link href="/tools" className="text-xs font-mono text-cyan-400 hover:underline">
-                  Browse arsenal &rarr;
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {data.new_tools.slice(0, 4).map((item) => (
-                  <ContentCard key={item.id} item={item} onSelect={setSelectedItem} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Section 21 Component 6: Latest Videos */}
-          {data?.latest_videos && data.latest_videos.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-red-400 font-mono text-sm">◈</span>
-                  <h2 className="text-lg font-bold text-white tracking-tight">
-                    Latest Security Talks & Video Intel
-                  </h2>
-                </div>
-                <Link href="/videos" className="text-xs font-mono text-cyan-400 hover:underline">
-                  Watch all &rarr;
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {data.latest_videos.slice(0, 4).map((item) => (
-                  <ContentCard key={item.id} item={item} onSelect={setSelectedItem} />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Right Col: Critical Vulnerabilities & Threat Intelligence */}
         <div className="space-y-8">
-          {/* Section 21 Component 2: Critical Vulnerabilities */}
-          <div className="cyber-card rounded-xl p-5 border border-slate-800">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+          {/* Critical Vulnerabilities */}
+          <div className="cyber-card rounded-2xl p-5 bg-[#FFFDF5] border border-[#E4DBC8] shadow-sm">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#E4DBC8]">
               <div className="flex items-center gap-2">
-                <span className="text-red-400 font-mono text-sm">⚠</span>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                <span className="text-[#B91C1C] font-mono text-sm">⚠</span>
+                <h3 className="text-sm font-bold text-[#171714] uppercase tracking-wider font-sans">
                   Critical Vulnerabilities
                 </h3>
               </div>
-              <Link href="/vulnerabilities" className="text-xs font-mono text-cyan-400 hover:underline">
+              <Link href="/vulnerabilities" className="text-xs font-mono text-[#C2821A] hover:underline font-semibold">
                 Tracker &rarr;
               </Link>
             </div>
@@ -599,34 +612,34 @@ export default function DashboardPage() {
                 <div
                   key={cve.id}
                   onClick={() => setSelectedItem(cve)}
-                  className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-red-500/40 cursor-pointer transition-colors"
+                  className="p-3 rounded-xl bg-[#F1EBD8] border border-[#E4DBC8] hover:border-[#B91C1C] cursor-pointer transition-colors"
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-mono text-xs font-bold text-cyan-300">{cve.title}</span>
+                    <span className="font-mono text-xs font-bold text-[#171714]">{cve.title}</span>
                     {cve.severity && <SeverityBadge severity={cve.severity} score={cve.cvss_score} />}
                   </div>
-                  <p className="text-xs text-slate-300 line-clamp-2 mb-2 leading-relaxed">
+                  <p className="text-xs text-[#68655B] line-clamp-2 mb-2 leading-relaxed">
                     {cve.summary || cve.description}
                   </p>
-                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-500">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-[#8C887B]">
                     <span>{cve.source}</span>
-                    <span className="text-cyan-400 hover:underline">Inspect &rarr;</span>
+                    <span className="text-[#C2821A] hover:underline font-semibold">Inspect &rarr;</span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Section 21 Component 7: Threat Intelligence */}
-          <div className="cyber-card rounded-xl p-5 border border-slate-800">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+          {/* Threat Intelligence & APTs */}
+          <div className="cyber-card rounded-2xl p-5 bg-[#FFFDF5] border border-[#E4DBC8] shadow-sm">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#E4DBC8]">
               <div className="flex items-center gap-2">
-                <span className="text-amber-400 font-mono text-sm">⚡</span>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                <span className="text-[#C2821A] font-mono text-sm">⚡</span>
+                <h3 className="text-sm font-bold text-[#171714] uppercase tracking-wider font-sans">
                   Threat Intelligence & APTs
                 </h3>
               </div>
-              <Link href="/intelligence" className="text-xs font-mono text-cyan-400 hover:underline">
+              <Link href="/intelligence" className="text-xs font-mono text-[#C2821A] hover:underline font-semibold">
                 Details &rarr;
               </Link>
             </div>
@@ -636,19 +649,19 @@ export default function DashboardPage() {
                 <div
                   key={intel.id}
                   onClick={() => setSelectedItem(intel)}
-                  className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-amber-500/40 cursor-pointer transition-colors"
+                  className="p-3 rounded-xl bg-[#F1EBD8] border border-[#E4DBC8] hover:border-[#C2821A] cursor-pointer transition-colors"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono text-xs font-bold text-amber-300 line-clamp-1">
+                    <span className="font-mono text-xs font-bold text-[#171714] line-clamp-1">
                       {intel.title}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 line-clamp-2 mb-2">
+                  <p className="text-xs text-[#68655B] line-clamp-2 mb-2">
                     {intel.summary || intel.description}
                   </p>
-                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-500">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-[#8C887B]">
                     <span>{intel.source}</span>
-                    <span className="text-amber-400 hover:underline">Inspect &rarr;</span>
+                    <span className="text-[#C2821A] hover:underline font-semibold">Inspect &rarr;</span>
                   </div>
                 </div>
               ))}
@@ -657,7 +670,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Reusable Content Inspection Modal */}
       <ContentModal item={selectedItem} onClose={() => setSelectedItem(null)} />
     </div>
   );

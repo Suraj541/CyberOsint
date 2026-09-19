@@ -32,7 +32,7 @@ class ConnectorHealth(BaseModel):
     """Health check diagnostic result for a source or connector."""
 
     status: str = Field(default="ok", description="Status code: ok, degraded, or failing")
-    source_url: str = Field(..., description="Endpoint or feed URL checked")
+    source_url: str = Field(default="", description="Endpoint or feed URL checked")
     latency_ms: Optional[float] = Field(default=None, description="Roundtrip check latency in milliseconds")
     error_message: Optional[str] = Field(default=None, description="Error details if status is degraded or failing")
     checked_at: str = Field(

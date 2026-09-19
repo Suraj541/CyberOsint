@@ -6,12 +6,13 @@ Conforms to IMPLEMENT.md Section 18.
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class SearchRequest(BaseModel):
     """Structured request payload for POST /api/v1/search."""
     q: Optional[str] = Field(default=None, description="Free text keyword search query")
+    query: Optional[str] = Field(default=None, description="Query alias for q")
     phrase: Optional[str] = Field(default=None, description="Exact phrase matching query")
     category: Optional[str] = Field(default=None, description="Taxonomy category filter")
     source: Optional[str] = Field(default=None, description="Source name filter")
@@ -24,6 +25,15 @@ class SearchRequest(BaseModel):
     page: int = Field(default=1, ge=1, description="Page number (1-indexed)")
     page_size: int = Field(default=20, ge=1, le=100, description="Items per page (max 100)")
     sort_by: str = Field(default="relevance", description="Sort order: relevance, newest, oldest")
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_query(cls, values: Any) -> Any:
+        if isinstance(values, dict):
+            if not values.get("q") and values.get("query"):
+                values["q"] = values["query"]
+        return values
+
 
 
 class SearchHitItem(BaseModel):

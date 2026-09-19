@@ -22,6 +22,14 @@ from .models import (
     DocumentType,
     RetentionMode,
 )
+from .sandbox import (
+    DocumentSandboxError,
+    DocumentSecurityScanner,
+    DocumentTextSanitizer,
+    EmbeddedProgramBlockedError,
+    MacroExecutionBlockedError,
+    UnknownBinaryBlockedError,
+)
 from .extractors.html_extractor import HtmlExtractor
 from .extractors.markdown_extractor import MarkdownExtractor
 from .extractors.office_extractor import OfficeExtractor
@@ -61,6 +69,18 @@ class DocumentProcessor:
         # 1. Determine Document Type
         effective_type = doc_type or DocumentType.from_filename_or_type(filename_or_url)
 
+        # Pre-execution Sandbox Security Scan per Section 39 Step 38
+        raw_bytes = content.encode("utf-8") if isinstance(content, str) else content
+        scan = DocumentSecurityScanner.scan_document(raw_bytes, filename=filename_or_url)
+        if not scan.is_safe:
+            if scan.macros_detected:
+                raise MacroExecutionBlockedError(f"Document contains prohibited active macros: {scan.rejection_reason}")
+            if scan.embedded_programs_detected:
+                raise EmbeddedProgramBlockedError(f"Document contains prohibited embedded programs: {scan.rejection_reason}")
+            if scan.unknown_binaries_detected:
+                raise UnknownBinaryBlockedError(f"Document contains prohibited unknown binary: {scan.rejection_reason}")
+            raise DocumentSandboxError(f"Sandboxed document rejected: {scan.rejection_reason}")
+
         # 2. Extract Document (Metadata, Full Text, Sections)
         metadata, full_text, sections = self._extract_raw(
             content=content,
@@ -68,6 +88,10 @@ class DocumentProcessor:
             filename_or_url=filename_or_url,
             source_url=source_url or filename_or_url,
         )
+
+        # Sanitize extracted text and section bodies (Stage 5: Sanitized result)
+        full_text = DocumentTextSanitizer.sanitize(full_text)
+        sections = [(h, DocumentTextSanitizer.sanitize(b)) for h, b in sections]
 
         # 3. Apply Retention Controls
         # Section 25: "Do not automatically retain copyrighted documents merely because

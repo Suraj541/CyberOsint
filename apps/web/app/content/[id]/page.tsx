@@ -21,6 +21,7 @@ import {
 import { SeverityBadge } from "../../../components/SeverityBadge";
 import { ContentCard } from "../../../components/ContentCard";
 import { SourceQualityBadge } from "../../../components/SourceQualityBadge";
+import { formatDateTime, safeUpper } from "../../../lib/formatters";
 
 export default function ContentDetailPage() {
   const params = useParams();
@@ -127,12 +128,7 @@ export default function ContentDetailPage() {
     );
   }
 
-  const formattedDate = item.published_at
-    ? new Date(item.published_at).toLocaleString("en-US", {
-        dateStyle: "full",
-        timeStyle: "medium",
-      })
-    : "Unknown Publication Timestamp";
+  const formattedDate = formatDateTime(item.published_at, "Unknown Publication Timestamp");
 
   return (
     <article className="space-y-8 animate-in fade-in duration-200 max-w-5xl mx-auto">
@@ -248,7 +244,7 @@ export default function ContentDetailPage() {
                       : "bg-amber-950/50 text-amber-300 border-amber-500/30"
                   }`}
                 >
-                  Validation: {summary.validation_status.toUpperCase()} ({(summary.validation_score * 100).toFixed(0)}%)
+                  Validation: {safeUpper(summary.validation_status, "PENDING")} ({(summary.validation_score * 100).toFixed(0)}%)
                 </span>
                 <span className="text-[11px] font-mono px-2.5 py-1 rounded bg-slate-900 text-emerald-400 border border-slate-700">
                   {(summary.confidence * 100).toFixed(0)}% Conf.
@@ -383,7 +379,7 @@ export default function ContentDetailPage() {
                 Attributed Source: <span className="text-cyan-400 font-semibold">{summary.source_attribution || item.source}</span>
               </div>
               <div className="flex items-center gap-2 text-slate-500">
-                <span>Generated: {new Date(summary.generated_at).toLocaleString()}</span>
+                <span>Generated: {formatDateTime(summary.generated_at)}</span>
                 <span>•</span>
                 <span>Strict 5-Rule Grounding Enforced</span>
               </div>

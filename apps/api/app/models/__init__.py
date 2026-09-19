@@ -24,13 +24,37 @@ from app.models.graph import EntityRelationship
 from app.models.source_quality import SourceQuality
 from app.models.summary import ContentSummary
 from app.models.recommendation import UserProfile, UserInteraction
+from app.models.notification import Notification, NotificationChannelConfig
 from app.models.watchlist import Watchlist, WatchlistItem
+from app.models.intelligence import (
+    CampaignModel,
+    CorrelationClusterModel,
+    IncidentTimelineModel,
+    LearningPathModel,
+    MalwareFamilyModel,
+    ThreatActorModel,
+)
+from app.models.scale import (
+    BenchmarkRunModel,
+    MarketplaceConnectorModel,
+    RegionNodeModel,
+    SourceReputationModel,
+)
+from app.models.compliance import (
+    ArchitectureAuditModel,
+    ComplianceAuditReportModel,
+    DoDCertificateModel,
+    GoldenPipelineRunModel,
+)
+from app.models.sync_state import ConnectorSyncState
+
 
 
 __all__ = [
     "Base",
     "BaseModel",
     "TimestampMixin",
+    "ConnectorSyncState",
     "User",
     "Source",
     "Content",
@@ -54,6 +78,25 @@ __all__ = [
     "UserInteraction",
     "Watchlist",
     "WatchlistItem",
+    "Notification",
+    "NotificationChannelConfig",
+    "ThreatActorModel",
+    "MalwareFamilyModel",
+    "CampaignModel",
+    "IncidentTimelineModel",
+    "CorrelationClusterModel",
+    "LearningPathModel",
+    "MarketplaceConnectorModel",
+    "RegionNodeModel",
+    "BenchmarkRunModel",
+    "SourceReputationModel",
+    "ComplianceAuditReportModel",
+    "DoDCertificateModel",
+    "ArchitectureAuditModel",
+    "GoldenPipelineRunModel",
 ]
+
+
+
 
 

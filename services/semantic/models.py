@@ -79,3 +79,10 @@ class HybridSearchResult:
     hits: List[HybridHit] = field(default_factory=list)
     took_ms: float = 0.0
     query_used: str = ""
+    engine: str = "hybrid"
+    text_count: int = 0
+    vector_count: int = 0
+    text_status: str = "ok"
+    vector_status: str = "ok"
+    engine_status: str = "optimal"
+

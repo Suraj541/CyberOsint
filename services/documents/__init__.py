@@ -1,9 +1,9 @@
 """
 Document Intelligence Package
-Provides comprehensive document ingestion, extraction, chunking, and enrichment
-for PDF, HTML, Markdown, TXT, DOCX, and PPTX formats.
-Pipeline: Document -> Metadata -> Text -> Chunks -> Entities -> Tags -> Embeddings.
-Conforms strictly to IMPLEMENT.md Section 25.
+Provides comprehensive document ingestion, extraction, chunking, enrichment,
+and sandboxed processing for PDF, HTML, Markdown, TXT, DOCX, and PPTX formats.
+Pipeline: Worker -> Sandbox -> Parser -> Extracted text -> Sanitized result.
+Conforms strictly to IMPLEMENT.md Section 25 & Section 39 (Step 38).
 """
 
 from .models import (
@@ -22,6 +22,20 @@ from .extractors import (
     PdfExtractor,
     TextExtractor,
 )
+from .sandbox import (
+    DocumentSandboxError,
+    DocumentSecurityScanResult,
+    DocumentSecurityScanner,
+    DocumentTextSanitizer,
+    EmbeddedProgramBlockedError,
+    MacroExecutionBlockedError,
+    PipelineStageResult,
+    SafeDocumentParser,
+    SandboxedDocumentProcessor,
+    SanitizedDocumentResult,
+    UnknownBinaryBlockedError,
+    sandboxed_processor,
+)
 
 __all__ = [
     "DocumentChunk",
@@ -38,4 +52,17 @@ __all__ = [
     "TextExtractor",
     "document_processor",
     "extract_document",
+    # Sandbox & Security
+    "DocumentSandboxError",
+    "DocumentSecurityScanResult",
+    "DocumentSecurityScanner",
+    "DocumentTextSanitizer",
+    "EmbeddedProgramBlockedError",
+    "MacroExecutionBlockedError",
+    "PipelineStageResult",
+    "SafeDocumentParser",
+    "SandboxedDocumentProcessor",
+    "SanitizedDocumentResult",
+    "UnknownBinaryBlockedError",
+    "sandboxed_processor",
 ]

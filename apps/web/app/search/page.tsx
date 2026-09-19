@@ -5,6 +5,7 @@ import { executeSearch } from "../../lib/api";
 import { SearchResponse, SearchHitItem, ContentItem } from "../../lib/types";
 import { SearchBar } from "../../components/SearchBar";
 import { ContentModal } from "../../components/ContentModal";
+import { formatDate } from "../../lib/formatters";
 
 const CATEGORIES = [
   "all",
@@ -24,6 +25,7 @@ export default function SearchPage() {
   const [results, setResults] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [modalItem, setModalItem] = useState<ContentItem | null>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   const performSearch = async (q: string, m: "hybrid" | "keyword", cat: string = selectedCategory) => {
     setLoading(true);
@@ -54,41 +56,103 @@ export default function SearchPage() {
     performSearch(query, mode, cat);
   };
 
+  const isDegraded = results?.engine_status === "degraded" || results?.vector_status === "failed";
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-6 animate-in fade-in duration-200 pb-16">
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider">
-            SEARCH & DISCOVERY
-          </span>
-          <span className="text-slate-600">&bull;</span>
-          <span className="text-xs font-mono text-slate-400">
-            {mode === "hybrid" ? "RECIPROCAL RANK FUSION (RRF)" : "LEXICAL KEYWORD"}
-          </span>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#E4DBC8] pb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-mono text-[#C2821A] font-bold uppercase tracking-wider">
+              HYBRID INTEL SEARCH
+            </span>
+            <span className="text-[#8C887B]">&bull;</span>
+            {/* Compact Status Indicator */}
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-[#F1EBD8] border border-[#E4DBC8] text-[11px] font-mono font-semibold">
+              <span className="flex items-center gap-1 text-[#171714]">
+                TEXT <span className="text-[#2D7A4F]">●</span>
+              </span>
+              {isDegraded ? (
+                <span className="flex items-center gap-1 text-[#D97706]">
+                  VECTOR <span className="font-bold text-[#D97706]">!</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-[#171714]">
+                  VECTOR <span className="text-[#2D7A4F]">●</span>
+                </span>
+              )}
+              {isDegraded ? (
+                <span className="text-[#D97706] font-bold">RRF DEGRADED</span>
+              ) : (
+                <span className="flex items-center gap-1 text-[#171714]">
+                  RRF <span className="text-[#2D7A4F]">●</span>
+                </span>
+              )}
+            </div>
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#171714] tracking-tight font-sans">
+            Reciprocal Rank Fusion Threat Search
+          </h1>
+          <p className="text-xs sm:text-sm text-[#68655B] mt-1 max-w-2xl">
+            Simultaneously queries OpenSearch BM25 lexical text indexes and 384-dimensional dense vector embeddings with Reciprocal Rank Fusion (k=60).
+          </p>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-          Hybrid Threat Search Engine
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-400 mt-1">
-          Simultaneously queries OpenSearch text indexes and 384-dimensional dense vector embeddings with Reciprocal Rank Fusion ($k=60$).
-        </p>
+
+        {/* Toggle Diagnostics */}
+        <button
+          onClick={() => setShowDiagnostics(!showDiagnostics)}
+          className="text-xs font-mono text-[#68655B] hover:text-[#171714] flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#F1EBD8] border border-[#E4DBC8] transition-colors"
+        >
+          <span>{showDiagnostics ? "Hide" : "Show"} Search Diagnostics</span>
+          <span>{showDiagnostics ? "▲" : "▼"}</span>
+        </button>
       </div>
+
+      {/* Expandable Search Diagnostics Section */}
+      {showDiagnostics && results && (
+        <div className="p-4 rounded-2xl bg-[#FFFDF5] border border-[#E4DBC8] shadow-sm font-mono text-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-[#E4DBC8] pb-2 font-bold text-[#171714]">
+            <span className="uppercase tracking-wider text-[11px] text-[#C2821A]">Search Engine Diagnostics</span>
+            <span>Query Runtime: {results.took_ms ? `${results.took_ms.toFixed(1)}ms` : "N/A"}</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
+            <div className="p-2.5 rounded bg-[#F1EBD8] border border-[#E4DBC8]">
+              <span className="text-[#68655B] block uppercase text-[10px]">Engine Mode</span>
+              <span className="font-bold text-[#171714] uppercase">{results.engine || mode}</span>
+            </div>
+            <div className="p-2.5 rounded bg-[#F1EBD8] border border-[#E4DBC8]">
+              <span className="text-[#68655B] block uppercase text-[10px]">Text Index Hits</span>
+              <span className="font-bold text-[#171714]">{results.text_count ?? 0}</span>
+            </div>
+            <div className="p-2.5 rounded bg-[#F1EBD8] border border-[#E4DBC8]">
+              <span className="text-[#68655B] block uppercase text-[10px]">Vector k-NN Hits</span>
+              <span className="font-bold text-[#171714]">{results.vector_count ?? 0}</span>
+            </div>
+            <div className="p-2.5 rounded bg-[#F1EBD8] border border-[#E4DBC8]">
+              <span className="text-[#68655B] block uppercase text-[10px]">RRF Constant</span>
+              <span className="font-bold text-[#171714]">k = 60</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search Input Bar */}
       <SearchBar initialQuery={query} initialMode={mode} onSearch={handleSearchSubmit} />
 
       {/* Category Filter Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-        <span className="text-xs font-mono text-slate-500 uppercase shrink-0">Category:</span>
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none font-mono text-xs">
+        <span className="text-[#68655B] uppercase shrink-0 font-semibold mr-1">Category:</span>
         {CATEGORIES.map((cat) => (
           <button
             key={cat}
             onClick={() => handleCategorySelect(cat)}
-            className={`px-3 py-1 rounded-lg text-xs font-mono whitespace-nowrap transition-colors ${
+            className={`px-3 py-1 rounded-lg text-xs whitespace-nowrap transition-colors ${
               selectedCategory === cat
-                ? "bg-cyan-500 text-slate-950 font-bold"
-                : "bg-slate-900/80 text-slate-400 hover:text-slate-200 border border-slate-800"
+                ? "bg-[#C2821A] text-white font-bold shadow-sm"
+                : "bg-[#F1EBD8] text-[#68655B] hover:text-[#171714] border border-[#E4DBC8]"
             }`}
           >
             {cat.replace(/_/g, " ")}
@@ -96,15 +160,35 @@ export default function SearchPage() {
         ))}
       </div>
 
+      {/* Error State Banner */}
+      {results?.error && (
+        <div className="p-4 rounded-xl bg-[#B91C1C]/10 border border-[#B91C1C]/30 text-[#B91C1C] text-xs font-mono flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-bold">⚠</span>
+            <div>
+              <span className="font-bold block">Search Engine Diagnostic Notice</span>
+              <span>{results.error}</span>
+            </div>
+          </div>
+          <button
+            onClick={() => performSearch(query, mode, selectedCategory)}
+            className="px-3 py-1.5 rounded-lg bg-[#B91C1C] text-white font-bold text-xs transition-colors shrink-0"
+          >
+            Retry Query
+          </button>
+        </div>
+      )}
+
       {/* Results Telemetry & Stats */}
-      {results && (
-        <div className="flex items-center justify-between text-xs font-mono text-slate-400 border-b border-slate-800 pb-3">
+      {results && !results.error && (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-[#68655B] border-b border-[#E4DBC8] pb-3">
           <div>
-            Showing <span className="text-white font-bold">{results.hits.length}</span> hits for{" "}
-            <span className="text-cyan-400">&ldquo;{query}&rdquo;</span> (took {results.took_ms}ms)
+            Showing <strong className="text-[#171714]">{results.hits.length}</strong> intelligence records for{" "}
+            <span className="text-[#C2821A] font-bold">&ldquo;{query}&rdquo;</span>
+            {typeof results.took_ms === "number" && results.took_ms > 0 ? ` (${results.took_ms.toFixed(0)}ms)` : ""}
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[11px]">
+            <span className="px-2 py-0.5 rounded bg-[#F1EBD8] border border-[#E4DBC8] text-[11px] text-[#171714] font-semibold">
               ENGINE: {mode.toUpperCase()}
             </span>
           </div>
@@ -114,10 +198,10 @@ export default function SearchPage() {
       {/* Results List */}
       <div className="space-y-4">
         {loading ? (
-          <div className="p-12 text-center text-slate-500 font-mono text-xs animate-pulse">
-            Executing hybrid vector ranking and reciprocal rank fusion...
+          <div className="p-12 text-center text-[#68655B] font-mono text-xs animate-pulse">
+            Executing hybrid reciprocal rank fusion query across dense vector space and lexical indexes...
           </div>
-        ) : results && results.hits.length > 0 ? (
+        ) : results?.error ? null : results && results.hits.length > 0 ? (
           results.hits.map((hit) => (
             <div
               key={hit.id}
@@ -135,53 +219,81 @@ export default function SearchPage() {
                   tags: hit.tags,
                 })
               }
-              className="cyber-card rounded-xl p-5 cursor-pointer group hover:border-cyan-500/50 transition-all"
+              className="cyber-card rounded-2xl p-5 cursor-pointer group bg-[#FFFDF5] border border-[#E4DBC8] shadow-sm hover:border-[#C2821A] transition-all"
             >
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-cyan-400 border border-slate-700">
+              {/* Header row: Source, Category, Type, Relevance chips, RRF score */}
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#F1EBD8] text-[#C2821A] border border-[#E4DBC8] font-bold">
                     {hit.source || "OSINT"}
                   </span>
-                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700">
-                    {hit.category ? hit.category.replace(/_/g, " ") : "general"}
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#F1EBD8] text-[#68655B] border border-[#E4DBC8]">
+                    {hit.category ? hit.category.replace(/_/g, " ") : "threat_intelligence"}
                   </span>
-                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#F1EBD8] text-[#171714] border border-[#E4DBC8]">
                     {hit.content_type}
                   </span>
+
+                  {/* Keyword & Semantic Relevance Metrics */}
+                  {hit.keyword_rank && hit.semantic_rank ? (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#C2821A]/10 text-[#C2821A] border border-[#C2821A]/30 font-bold">
+                      RRF Fused (Text #{hit.keyword_rank} + Vector #{hit.semantic_rank})
+                    </span>
+                  ) : hit.keyword_rank ? (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#F1EBD8] text-[#171714] border border-[#E4DBC8]">
+                      Text Match #{hit.keyword_rank}
+                    </span>
+                  ) : hit.semantic_rank ? (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#7C3AED]/10 text-[#7C3AED] border border-[#7C3AED]/25">
+                      Vector Match #{hit.semantic_rank}
+                    </span>
+                  ) : null}
                 </div>
-                <div className="text-right">
-                  <span className="text-xs font-mono text-emerald-400">
-                    Score: {hit.score.toFixed(3)}
+
+                <div className="text-right font-mono text-xs">
+                  <span className="text-[#2D7A4F] font-bold px-2 py-0.5 rounded bg-[#2D7A4F]/10 border border-[#2D7A4F]/25">
+                    {typeof hit.rrf_score === "number"
+                      ? `RRF: ${hit.rrf_score.toFixed(4)}`
+                      : `Score: ${hit.score.toFixed(3)}`}
                   </span>
                 </div>
               </div>
 
-              <h3 className="text-base font-bold text-white group-hover:text-cyan-300 transition-colors mb-2">
+              {/* Title */}
+              <h3 className="text-base font-bold text-[#171714] group-hover:text-[#C2821A] transition-colors mb-2 font-sans">
                 {hit.title}
               </h3>
 
+              {/* Highlight / Snippet */}
               {hit.highlight && (
-                <p className="text-sm text-slate-300 mb-3 leading-relaxed">
+                <p className="text-xs sm:text-sm text-[#68655B] mb-3 leading-relaxed">
                   {hit.highlight}
                 </p>
               )}
 
+              {/* Matched Semantic Chunk */}
               {hit.matched_chunk && (
-                <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 text-xs font-mono text-slate-400 mb-3">
-                  <span className="text-cyan-400 block mb-1">SEMANTIC VECTOR MATCH:</span>
+                <div className="p-3 rounded-xl bg-[#F1EBD8] border border-[#E4DBC8] text-xs font-mono text-[#171714] mb-3">
+                  <span className="text-[#C2821A] font-bold block mb-1">SEMANTIC VECTOR EMBEDDING MATCH:</span>
                   {hit.matched_chunk}
                 </div>
               )}
 
-              <div className="flex items-center justify-between text-xs font-mono text-slate-500 pt-2 border-t border-slate-800/60">
-                <span>{hit.canonical_url}</span>
-                <span className="text-cyan-400 group-hover:underline">Inspect details &rarr;</span>
+              {/* Footer row: Date, URL, Inspect action */}
+              <div className="flex items-center justify-between text-xs font-mono text-[#68655B] pt-2.5 border-t border-[#E4DBC8]">
+                <div className="flex items-center gap-3 truncate max-w-[70%]">
+                  <span>{formatDate(hit.published_at)}</span>
+                  <span className="truncate text-[#8C887B]">{hit.canonical_url}</span>
+                </div>
+                <span className="text-[#C2821A] group-hover:underline font-bold shrink-0">
+                  Inspect details &rarr;
+                </span>
               </div>
             </div>
           ))
         ) : (
-          <div className="cyber-card rounded-xl p-12 text-center text-slate-400 font-mono text-sm">
-            No intelligence items match your query. Try adjusting keyword or category filters.
+          <div className="cyber-card rounded-2xl p-12 text-center text-[#68655B] font-mono text-sm bg-[#FFFDF5] border border-[#E4DBC8] shadow-sm">
+            No intelligence items match your query. Try adjusting keyword terms or category filters.
           </div>
         )}
       </div>

@@ -101,3 +101,75 @@ def batch_generate_summaries(
         processed_count=len(out_items),
         summaries=out_items,
     )
+
+
+@router.get(
+    "/ai/status",
+    status_code=status.HTTP_200_OK,
+    summary="Get Mistral AI Auto-Detection and Provider Status",
+)
+def get_ai_provider_status() -> dict:
+    """
+    Returns auto-detection diagnostic status: active model, discovered models,
+    selection reason, cache age, and configuration health.
+    """
+    import os
+    from app.config import settings
+    from services.summarization.mistral_detector import mistral_model_detector
+
+    api_key = (
+        os.environ.get("MISTRAL_API_KEY")
+        or os.environ.get("AI_API_KEY")
+        or getattr(settings, "MISTRAL_API_KEY", None)
+        or getattr(settings, "AI_API_KEY", None)
+        or settings.get_secret("MISTRAL_API_KEY")
+        or settings.get_secret("AI_API_KEY")
+    )
+
+    preferred = os.environ.get("MISTRAL_MODEL") or getattr(settings, "MISTRAL_MODEL", "auto")
+    selected_model, reason = mistral_model_detector.detect_optimal_model(
+        api_key=api_key,
+        preferred_model=preferred,
+        force_refresh=False,
+    )
+
+    status_data = mistral_model_detector.get_status(api_key=api_key)
+    status_data["preferred_model_config"] = preferred
+    status_data["provider"] = "mistral"
+    return status_data
+
+
+@router.post(
+    "/ai/detect",
+    status_code=status.HTTP_200_OK,
+    summary="Trigger Fresh Mistral AI Model Auto-Detection",
+)
+def refresh_mistral_model_detection() -> dict:
+    """
+    Force a live refresh of available Mistral models against the active key
+    and auto-select the optimal model.
+    """
+    import os
+    from app.config import settings
+    from services.summarization.mistral_detector import mistral_model_detector
+
+    api_key = (
+        os.environ.get("MISTRAL_API_KEY")
+        or os.environ.get("AI_API_KEY")
+        or getattr(settings, "MISTRAL_API_KEY", None)
+        or getattr(settings, "AI_API_KEY", None)
+        or settings.get_secret("MISTRAL_API_KEY")
+        or settings.get_secret("AI_API_KEY")
+    )
+
+    preferred = os.environ.get("MISTRAL_MODEL") or getattr(settings, "MISTRAL_MODEL", "auto")
+    selected_model, reason = mistral_model_detector.detect_optimal_model(
+        api_key=api_key,
+        preferred_model=preferred,
+        force_refresh=True,
+    )
+
+    status_data = mistral_model_detector.get_status(api_key=api_key)
+    status_data["preferred_model_config"] = preferred
+    status_data["provider"] = "mistral"
+    return status_data

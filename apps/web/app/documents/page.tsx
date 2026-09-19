@@ -12,15 +12,17 @@ export default function DocumentsPage() {
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
 
   useEffect(() => {
-    fetchRecentContent().then((all) => {
+    fetchRecentContent("advisory,article,research", undefined, 50).then((all) => {
       const filtered = all.filter(
         (i) =>
           i.content_type === "document" ||
           i.content_type === "paper" ||
           i.content_type === "advisory" ||
+          i.content_type === "article" ||
+          i.content_type === "research" ||
           Boolean(i.document_metadata)
       );
-      setDocuments(filtered.length > 0 ? filtered : all);
+      setDocuments(filtered);
     });
   }, []);
 

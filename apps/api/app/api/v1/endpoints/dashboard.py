@@ -43,8 +43,10 @@ def get_dashboard_data(
     # 1. Real Database Aggregate Metrics
     total_content = db.query(func.count(Content.id)).scalar() or 0
     active_sources = db.query(func.count(Source.id)).filter(Source.active == True).scalar() or 0
-    tracked_cves = db.query(func.count(Content.id)).filter(Content.content_type == "cve").scalar() or 0
-    threat_advisories = db.query(func.count(Content.id)).filter(Content.content_type == "advisory").scalar() or 0
+    cve_content_count = db.query(func.count(Content.id)).filter(Content.content_type.in_(["cve", "vulnerability"])).scalar() or 0
+    cve_entity_count = db.query(func.count(Entity.id)).filter(Entity.entity_type == "cve").scalar() or 0
+    tracked_cves = max(cve_content_count, cve_entity_count)
+    threat_advisories = db.query(func.count(Content.id)).filter(Content.content_type.in_(["advisory", "report", "cert"])).scalar() or 0
     total_entities = db.query(func.count(Entity.id)).scalar() or 0
 
     metrics = DashboardStats(
@@ -60,7 +62,7 @@ def get_dashboard_data(
     # 2. Component 1: Latest News (articles & general advisories)
     latest_news = (
         db.query(Content)
-        .filter(Content.content_type.in_(["article", "advisory"]))
+        .filter(Content.content_type.in_(["article", "advisory", "news"]))
         .order_by(Content.published_at.desc().nullslast(), Content.created_at.desc())
         .limit(limit)
         .all()
@@ -69,16 +71,27 @@ def get_dashboard_data(
     # 3. Component 2: Critical Vulnerabilities (CVE intelligence)
     critical_vulnerabilities = (
         db.query(Content)
-        .filter(Content.content_type == "cve")
+        .filter(Content.content_type.in_(["cve", "vulnerability"]))
         .order_by(Content.published_at.desc().nullslast(), Content.created_at.desc())
         .limit(limit)
         .all()
     )
+    if len(critical_vulnerabilities) < limit:
+        additional_cves = (
+            db.query(Content)
+            .filter(Content.title.ilike("%CVE-%"))
+            .order_by(Content.published_at.desc().nullslast(), Content.created_at.desc())
+            .limit(limit - len(critical_vulnerabilities))
+            .all()
+        )
+        for add_cve in additional_cves:
+            if add_cve not in critical_vulnerabilities:
+                critical_vulnerabilities.append(add_cve)
 
     # 4. Component 3: New Research (whitepapers, exploit research, academic papers)
     new_research = (
         db.query(Content)
-        .filter(Content.content_type.in_(["paper", "research"]))
+        .filter(Content.content_type.in_(["paper", "research", "document"]))
         .order_by(Content.published_at.desc().nullslast(), Content.created_at.desc())
         .limit(limit)
         .all()
@@ -113,7 +126,10 @@ def get_dashboard_data(
     # 6. Component 5: New Tools (security tools, GitHub repos, exploits)
     new_tools = (
         db.query(Content)
-        .filter(Content.content_type == "tool")
+        .filter(
+            Content.content_type.in_(["tool", "github"])
+            | Content.canonical_url.ilike("%github.com%")
+        )
         .order_by(Content.published_at.desc().nullslast(), Content.created_at.desc())
         .limit(limit)
         .all()
@@ -122,7 +138,7 @@ def get_dashboard_data(
     # 7. Component 6: Latest Videos (conference talks, webinars, recordings)
     latest_videos = (
         db.query(Content)
-        .filter(Content.content_type == "video")
+        .filter(Content.content_type.in_(["video", "conference"]))
         .order_by(Content.published_at.desc().nullslast(), Content.created_at.desc())
         .limit(limit)
         .all()
@@ -131,7 +147,7 @@ def get_dashboard_data(
     # 8. Component 7: Threat Intelligence (APT actors, campaigns, advisories)
     threat_intelligence = (
         db.query(Content)
-        .filter(Content.content_type.in_(["article", "advisory", "report"]))
+        .filter(Content.content_type.in_(["article", "advisory", "report", "threat_intel"]))
         .order_by(Content.published_at.desc().nullslast(), Content.created_at.desc())
         .limit(limit)
         .all()

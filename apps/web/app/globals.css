@@ -4,51 +4,61 @@
 
 @layer base {
   :root {
-    --background: 11 15 23;
-    --foreground: 241 245 249;
+    --background: 247 243 232;
+    --foreground: 23 23 20;
   }
 
   body {
-    background-color: #080c14;
-    color: #e2e8f0;
+    background-color: #F7F3E8;
+    color: #171714;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     overflow-x: hidden;
   }
 }
 
-/* Custom Sleek Scrollbar */
+/* Custom Sleek Archival Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #080c14;
+  background: #F7F3E8;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #E4DBC8;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #D8CEB9;
 }
 
-/* Glassmorphism Card Utilities */
+/* Dossier Paper Card Utilities */
 .cyber-card {
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(30, 41, 59, 0.8);
+  background: #FFFDF5;
+  border: 1px solid #E4DBC8;
+  box-shadow: 0 1px 3px rgba(23, 23, 20, 0.04), 0 4px 12px rgba(23, 23, 20, 0.02);
   transition: all 0.2s ease-in-out;
 }
 
 .cyber-card:hover {
-  border-color: rgba(6, 182, 212, 0.4);
-  box-shadow: 0 0 20px -5px rgba(6, 182, 212, 0.15);
+  border-color: #C2821A;
+  box-shadow: 0 4px 16px -2px rgba(194, 130, 26, 0.12);
 }
 
 .cyber-glass {
-  background: rgba(11, 15, 23, 0.85);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(30, 41, 59, 0.9);
+  background: rgba(255, 253, 245, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid #E4DBC8;
+}
+
+/* Archival Stamp & Tag */
+.dossier-stamp {
+  border: 1.5px solid #C2821A;
+  color: #C2821A;
+  text-transform: uppercase;
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 /* Pulsing Status Dot */

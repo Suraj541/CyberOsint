@@ -106,15 +106,44 @@ class SemanticService:
 
         # Query all chunks from DB joined with Content
         q = db.query(ContentChunk, Content).join(Content, ContentChunk.content_id == Content.id)
-        if category:
-            # Filter if content has category
-            pass
+
+        matching_cids: Optional[Set[int]] = None
+        if category and category.lower() != "all":
+            clean_cat = category.lower().strip()
+            # 1. Match from search index documents
+            try:
+                matching_cids = {
+                    doc_id for doc_id, doc in search_service.client.index_memory_items()
+                    if str(doc.get("category", "")).lower() == clean_cat
+                }
+            except Exception:
+                matching_cids = None
+
+            # 2. Match from database tags if needed
+            if not matching_cids:
+                try:
+                    from app.models.tag import Tag, ContentTag
+                    tag_cids = {
+                        r[0] for r in db.query(ContentTag.content_id)
+                        .join(Tag, ContentTag.tag_id == Tag.id)
+                        .filter(Tag.category == clean_cat).all()
+                    }
+                    if tag_cids:
+                        matching_cids = tag_cids
+                except Exception:
+                    pass
 
         results: List[SemanticHit] = []
         chunk_rows = q.all()
 
         for chunk, content in chunk_rows:
             if not chunk.embedding:
+                continue
+
+            if matching_cids is not None and content.id not in matching_cids:
+                continue
+
+            if source and content.source and content.source.name != source:
                 continue
 
             sim = cosine_similarity(query_vec, chunk.embedding)
@@ -143,19 +172,42 @@ class SemanticService:
         2. Keyword search via OpenSearch
         3. Reciprocal Rank Fusion (RRF) ranking
         """
+        if not sq.query or not sq.query.strip():
+            return HybridSearchResult(
+                total=0,
+                page=sq.page,
+                page_size=sq.page_size,
+                hits=[],
+                took_ms=0.0,
+                query_used="",
+                engine="hybrid",
+                text_count=0,
+                vector_count=0,
+                text_status="ok",
+                vector_status="ok",
+                engine_status="optimal",
+            )
+
         start_time = time.time()
+
 
         # -------------------------------------------------------------
         # 1. Semantic Vector Search
         # -------------------------------------------------------------
-        vector_hits = self.search_vector(
-            db=db,
-            query=sq.query,
-            limit=50,
-            threshold=0.2,
-            category=sq.category,
-            source=sq.source,
-        )
+        vector_status = "ok"
+        try:
+            vector_hits = self.search_vector(
+                db=db,
+                query=sq.query,
+                limit=50,
+                threshold=0.2,
+                category=sq.category,
+                source=sq.source,
+            )
+        except Exception as v_err:
+            logger.warning("Vector search error during hybrid search: %s", v_err)
+            vector_hits = []
+            vector_status = "failed"
 
         # Aggregate vector hits by content_id (best matching chunk per article)
         vector_content_map: Dict[int, SemanticHit] = {}
@@ -171,23 +223,43 @@ class SemanticService:
         # -------------------------------------------------------------
         # 2. Lexical Keyword Search via OpenSearch
         # -------------------------------------------------------------
-        keyword_res = search_service.search(
-            SearchQuery(
-                query=sq.query,
-                category=sq.category,
-                source=sq.source,
-                content_type=sq.content_type,
-                entity=sq.entity,
-                page=1,
-                page_size=50,
+        text_status = "ok"
+        try:
+            keyword_res = search_service.search(
+                SearchQuery(
+                    query=sq.query,
+                    category=sq.category,
+                    source=sq.source,
+                    content_type=sq.content_type,
+                    entity=sq.entity,
+                    page=1,
+                    page_size=50,
+                )
             )
-        )
+        except Exception as kw_err:
+            logger.warning("Keyword search error during hybrid search: %s", kw_err)
+            from services.search.models import SearchResult
+            keyword_res = SearchResult(total=0, page=1, page_size=50, hits=[], took_ms=0.0)
+            text_status = "failed"
 
         keyword_content_map: Dict[int, Any] = {}
         keyword_ranks: Dict[int, int] = {}
         for rank_idx, kh in enumerate(keyword_res.hits, start=1):
             keyword_content_map[kh.id] = kh
             keyword_ranks[kh.id] = rank_idx
+
+        text_count = len(keyword_res.hits)
+        vector_count = len(vector_hits)
+
+        # Telemetry engine status resolution
+        if text_status == "ok" and vector_status == "ok":
+            engine_status = "optimal"
+        elif text_status == "ok" and vector_status != "ok":
+            engine_status = "degraded"
+        elif text_status != "ok" and vector_status == "ok":
+            engine_status = "degraded"
+        else:
+            engine_status = "failed"
 
         # -------------------------------------------------------------
         # 3. Reciprocal Rank Fusion (RRF)
@@ -283,7 +355,14 @@ class SemanticService:
             hits=paginated_hits,
             took_ms=took,
             query_used=sq.query,
+            engine="hybrid",
+            text_count=text_count,
+            vector_count=vector_count,
+            text_status=text_status,
+            vector_status=vector_status,
+            engine_status=engine_status,
         )
+
 
     def reindex_all_embeddings(self, db: Session, batch_size: int = 100) -> int:
         """Re-chunk and re-embed all content documents in the database."""

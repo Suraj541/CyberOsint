@@ -28,74 +28,122 @@ const ENTITY_CONFIG: Record<
 > = {
   threat_actor: {
     label: "Threat Actor",
-    color: "#f59e0b",
-    stroke: "stroke-amber-400",
-    bg: "bg-amber-500/15 border-amber-500/30",
-    text: "text-amber-400",
+    color: "#d97706",
+    stroke: "stroke-amber-600",
+    bg: "bg-amber-100 border-amber-300",
+    text: "text-amber-800",
     icon: "☠",
   },
   malware: {
     label: "Malware",
-    color: "#ef4444",
-    stroke: "stroke-red-400",
-    bg: "bg-red-500/15 border-red-500/30",
-    text: "text-red-400",
+    color: "#b91c1c",
+    stroke: "stroke-red-600",
+    bg: "bg-red-100 border-red-300",
+    text: "text-red-800",
     icon: "☣",
   },
   cve: {
     label: "CVE / Vuln",
-    color: "#a855f7",
-    stroke: "stroke-purple-400",
-    bg: "bg-purple-500/15 border-purple-500/30",
-    text: "text-purple-400",
+    color: "#7c3aed",
+    stroke: "stroke-purple-600",
+    bg: "bg-purple-100 border-purple-300",
+    text: "text-purple-800",
     icon: "🛡",
   },
   tool: {
     label: "Tool / Utility",
-    color: "#3b82f6",
-    stroke: "stroke-blue-400",
-    bg: "bg-blue-500/15 border-blue-500/30",
-    text: "text-blue-400",
-    icon: "⚙",
+    color: "#2563eb",
+    stroke: "stroke-blue-600",
+    bg: "bg-blue-100 border-blue-300",
+    text: "text-blue-800",
+    icon: "🔧",
   },
   technique: {
     label: "Technique",
-    color: "#06b6d4",
-    stroke: "stroke-cyan-400",
-    bg: "bg-cyan-500/15 border-cyan-500/30",
-    text: "text-cyan-400",
+    color: "#0891b2",
+    stroke: "stroke-cyan-600",
+    bg: "bg-cyan-100 border-cyan-300",
+    text: "text-cyan-800",
     icon: "🎯",
   },
   product: {
     label: "Product / Asset",
-    color: "#10b981",
-    stroke: "stroke-emerald-400",
-    bg: "bg-emerald-500/15 border-emerald-500/30",
-    text: "text-emerald-400",
+    color: "#2d7a4f",
+    stroke: "stroke-emerald-600",
+    bg: "bg-emerald-100 border-emerald-300",
+    text: "text-emerald-800",
     icon: "📦",
   },
   vendor: {
     label: "Vendor",
-    color: "#34d399",
-    stroke: "stroke-emerald-300",
-    bg: "bg-emerald-500/15 border-emerald-500/30",
-    text: "text-emerald-300",
+    color: "#059669",
+    stroke: "stroke-emerald-700",
+    bg: "bg-emerald-100 border-emerald-300",
+    text: "text-emerald-800",
     icon: "🏢",
   },
   organization: {
-    label: "Target Org",
-    color: "#d946ef",
-    stroke: "stroke-fuchsia-400",
-    bg: "bg-fuchsia-500/15 border-fuchsia-500/30",
-    text: "text-fuchsia-400",
+    label: "Organization",
+    color: "#9333ea",
+    stroke: "stroke-purple-700",
+    bg: "bg-purple-100 border-purple-300",
+    text: "text-purple-800",
     icon: "🏛",
+  },
+  person: {
+    label: "Person",
+    color: "#0284c7",
+    stroke: "stroke-sky-600",
+    bg: "bg-sky-100 border-sky-300",
+    text: "text-sky-800",
+    icon: "👤",
+  },
+  domain: {
+    label: "Domain",
+    color: "#0d9488",
+    stroke: "stroke-teal-600",
+    bg: "bg-teal-100 border-teal-300",
+    text: "text-teal-800",
+    icon: "🌐",
+  },
+  ip: {
+    label: "IP Address",
+    color: "#4f46e5",
+    stroke: "stroke-indigo-600",
+    bg: "bg-indigo-100 border-indigo-300",
+    text: "text-indigo-800",
+    icon: "🔢",
+  },
+  location: {
+    label: "Location",
+    color: "#ea580c",
+    stroke: "stroke-orange-600",
+    bg: "bg-orange-100 border-orange-300",
+    text: "text-orange-800",
+    icon: "📍",
+  },
+  technology: {
+    label: "Technology",
+    color: "#c2821a",
+    stroke: "stroke-amber-700",
+    bg: "bg-amber-100 border-amber-300",
+    text: "text-amber-800",
+    icon: "💻",
+  },
+  cwe: {
+    label: "CWE Weakness",
+    color: "#dc2626",
+    stroke: "stroke-rose-600",
+    bg: "bg-rose-100 border-rose-300",
+    text: "text-rose-800",
+    icon: "⚠️",
   },
   default: {
     label: "Entity",
-    color: "#94a3b8",
-    stroke: "stroke-slate-400",
-    bg: "bg-slate-500/15 border-slate-500/30",
-    text: "text-slate-300",
+    color: "#68655b",
+    stroke: "stroke-neutral-500",
+    bg: "bg-neutral-100 border-neutral-300",
+    text: "text-neutral-700",
     icon: "◆",
   },
 };
@@ -108,7 +156,7 @@ function getEntityConfig(type: string) {
 export default function KnowledgeGraphPage() {
   // Navigation & view states
   const [activeTab, setActiveTab] = useState<"explorer" | "pathfinder" | "table">("explorer");
-  const [centerEntityId, setCenterEntityId] = useState<number>(1); // Default to APT29
+  const [centerEntityId, setCenterEntityId] = useState<number>(34); // Default to Microsoft (top hub ID 34)
   const [hopDepth, setHopDepth] = useState<number>(2);
   const [maxLimit, setMaxLimit] = useState<number>(40);
   const [filterType, setFilterType] = useState<string>("all");
@@ -116,7 +164,7 @@ export default function KnowledgeGraphPage() {
 
   // Data states
   const [subgraph, setSubgraph] = useState<GraphSubgraph>({
-    center_id: 1,
+    center_id: 34,
     depth: 2,
     nodes: FALLBACK_GRAPH_NODES,
     edges: FALLBACK_GRAPH_EDGES,
@@ -130,17 +178,17 @@ export default function KnowledgeGraphPage() {
   const [selectedEdge, setSelectedEdge] = useState<GraphEdge | null>(null);
 
   // Path Finder states
-  const [pathSourceId, setPathSourceId] = useState<number>(1); // APT29
-  const [pathTargetId, setPathTargetId] = useState<number>(3); // SolarWinds
+  const [pathSourceId, setPathSourceId] = useState<number>(34); // Microsoft
+  const [pathTargetId, setPathTargetId] = useState<number>(240); // Windows
   const [pathResult, setPathResult] = useState<GraphPath | null>(null);
   const [pathSearching, setPathSearching] = useState<boolean>(false);
   const [pathError, setPathError] = useState<string | null>(null);
 
   // Assert Relationship Modal
   const [assertModalOpen, setAssertModalOpen] = useState<boolean>(false);
-  const [assertSourceId, setAssertSourceId] = useState<number>(1);
-  const [assertVerb, setAssertVerb] = useState<string>("uses");
-  const [assertTargetId, setAssertTargetId] = useState<number>(2);
+  const [assertSourceId, setAssertSourceId] = useState<number>(34);
+  const [assertVerb, setAssertVerb] = useState<string>("affects");
+  const [assertTargetId, setAssertTargetId] = useState<number>(240);
   const [assertConfidence, setAssertConfidence] = useState<number>(0.95);
   const [assertSubmitting, setAssertSubmitting] = useState<boolean>(false);
   const [assertSuccessMsg, setAssertSuccessMsg] = useState<string | null>(null);
@@ -1138,8 +1186,8 @@ export default function KnowledgeGraphPage() {
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-slate-300">
                 {allRelationships.map((rel) => {
-                  const srcNode = FALLBACK_GRAPH_NODES.find((n) => n.id === rel.source_entity_id);
-                  const dstNode = FALLBACK_GRAPH_NODES.find((n) => n.id === rel.target_entity_id);
+                  const srcNode = subgraph.nodes.find((n) => n.id === rel.source_entity_id) || FALLBACK_GRAPH_NODES.find((n) => n.id === rel.source_entity_id);
+                  const dstNode = subgraph.nodes.find((n) => n.id === rel.target_entity_id) || FALLBACK_GRAPH_NODES.find((n) => n.id === rel.target_entity_id);
                   const srcCfg = srcNode ? getEntityConfig(srcNode.entity_type) : null;
                   const dstCfg = dstNode ? getEntityConfig(dstNode.entity_type) : null;
 

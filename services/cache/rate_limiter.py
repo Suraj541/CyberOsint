@@ -56,7 +56,8 @@ class RateLimiter:
                 time_to_reset,
             )
 
-        return allowed, remaining, round(time_to_reset, 1)
+        retry_after = max(1.0, round(time_to_reset, 1)) if not allowed else max(0.0, round(time_to_reset, 1))
+        return allowed, remaining, retry_after
 
 
 class RateLimitDependency:

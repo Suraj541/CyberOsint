@@ -98,6 +98,7 @@ def hybrid_search_get(
         page_size=res.page_size,
         hits=[
             HybridHitItem(
+                id=h.content_id,
                 content_id=h.content_id,
                 title=h.title,
                 canonical_url=h.canonical_url,
@@ -116,6 +117,12 @@ def hybrid_search_get(
         ],
         took_ms=res.took_ms,
         query=res.query_used,
+        engine=res.engine,
+        text_count=res.text_count,
+        vector_count=res.vector_count,
+        text_status=res.text_status,
+        vector_status=res.vector_status,
+        engine_status=res.engine_status,
     )
 
 
@@ -145,6 +152,7 @@ def hybrid_search_post(
         page_size=res.page_size,
         hits=[
             HybridHitItem(
+                id=h.content_id,
                 content_id=h.content_id,
                 title=h.title,
                 canonical_url=h.canonical_url,
@@ -163,7 +171,14 @@ def hybrid_search_post(
         ],
         took_ms=res.took_ms,
         query=res.query_used,
+        engine=res.engine,
+        text_count=res.text_count,
+        vector_count=res.vector_count,
+        text_status=res.text_status,
+        vector_status=res.vector_status,
+        engine_status=res.engine_status,
     )
+
 
 
 @router.post("/semantic/embed", response_model=EmbedResponse, summary="Generate vector embedding for text")

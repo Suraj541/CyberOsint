@@ -4,7 +4,7 @@ Loads environment variables and validates platform runtime settings using Pydant
 """
 
 import os
-from typing import List, Union
+from typing import List, Optional, Union
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -80,21 +80,70 @@ class Settings(BaseSettings):
         description="Enable OpenSearch indexing (falls back gracefully if offline)",
     )
 
+    # Section 36 (Step 35: Secret Management) Core Environment Variables
+    SEARCH_URL: Optional[str] = Field(
+        default=None,
+        description="Search cluster connection URL (aliases OPENSEARCH_URL per IMPLEMENT.md Section 36)",
+    )
+    AI_API_KEY: Optional[str] = Field(
+        default=None,
+        description="API key for AI LLM intelligence synthesis and threat analysis",
+    )
+    MISTRAL_API_KEY: Optional[str] = Field(
+        default=None,
+        description="API key for Mistral AI LLM intelligence synthesis and summarization",
+    )
+    MISTRAL_MODEL: str = Field(
+        default="auto",
+        description="Mistral AI model name or 'auto' for automatic capability detection",
+    )
+    VIDEO_API_KEY: Optional[str] = Field(
+        default=None,
+        description="API key for video platform integration",
+    )
+    GITHUB_TOKEN: Optional[str] = Field(
+        default=None,
+        description="GitHub Personal Access Token for advisories and exploit PoCs",
+    )
+    SECRET_BACKEND: str = Field(
+        default="env",
+        description="Active secret manager backend: env, vault, aws, or encrypted_file",
+    )
+
     # Ingestion Controls
     INGESTION_CONCURRENCY: int = 5
     DEFAULT_FETCH_TIMEOUT_SECONDS: int = 30
     MAX_CONTENT_PAYLOAD_SIZE_MB: int = 10
     DEFAULT_USER_AGENT: str = "CyberOSINT-Intelligence-Bot/1.0 (+https://cyber-osint.local/bot)"
 
-    # Security Controls
+    # Security Controls (Section 37 Step 36)
     SSRF_PROTECTION_ENABLED: bool = True
     ALLOW_PRIVATE_SUBNETS: bool = False
     MAX_REDIRECTS: int = 3
+    AUTH_ENFORCED: bool = Field(default=False, description="Enforce mandatory authentication on all endpoints")
+    RATE_LIMIT_ENABLED: bool = Field(default=True, description="Enforce tiered sliding window rate limiting")
+    SECURITY_HEADERS_ENABLED: bool = Field(default=True, description="Inject OWASP defensive security headers")
 
     # Scheduler Settings
-    ENABLE_SCHEDULER: bool = Field(default=False, description="Enable periodic background scheduler")
+    ENABLE_SCHEDULER: bool = Field(default=True, description="Enable periodic background scheduler")
     SCHEDULER_RSS_INTERVAL_MINUTES: int = Field(default=30, description="Periodic RSS ingestion interval in minutes")
     SCHEDULER_CHECK_INTERVAL_SECONDS: float = Field(default=5.0, description="Scheduler loop resolution in seconds")
+
+    @field_validator("SEARCH_URL", mode="after")
+    @classmethod
+    def set_search_url_default(cls, v: Optional[str]) -> str:
+        if v:
+            return v
+        return "http://localhost:9200"
+
+    def get_secret(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        """Retrieves a secret dynamically via the active SecretManager backend."""
+        try:
+            from services.secrets import secret_manager
+            val = secret_manager.get_secret(key, default)
+            return val if val is not None else getattr(self, key, default)
+        except Exception:
+            return getattr(self, key, default)
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -105,3 +154,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+

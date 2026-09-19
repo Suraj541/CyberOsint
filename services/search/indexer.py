@@ -126,6 +126,35 @@ def serialize_content_document(
         else:
             doc_entities = []
 
+    # Automatically classify content if category is not explicitly provided
+    if not cat:
+        try:
+            from services.classifier import classify_content
+            classified = classify_content(
+                title=title,
+                description=desc,
+                content_text=summary,
+            )
+            if classified and classified.category:
+                cat = classified.category
+        except Exception:
+            pass
+
+    if not cat:
+        # Fallback to tag name if tag is a domain/subdomain
+        if not isinstance(content, dict) and hasattr(content, "content_tags") and content.content_tags:
+            for ct in content.content_tags:
+                if hasattr(ct, "tag") and ct.tag and ct.tag.category in ("domain", "subdomain"):
+                    cat = ct.tag.name
+                    break
+
+    if not cat:
+        if "cve-" in title.lower() or ctype == "cve":
+            cat = "vulnerability_management"
+        else:
+            cat = "threat_intelligence"
+
+
     def _format_date(dt: Any) -> Optional[str]:
         if isinstance(dt, datetime):
             return dt.isoformat()
@@ -140,7 +169,7 @@ def serialize_content_document(
         "summary": summary,
         "canonical_url": url,
         "source": src,
-        "category": cat.lower() if cat else "",
+        "category": cat.lower() if cat else "threat_intelligence",
         "content_type": ctype.lower() if ctype else "article",
         "author": author,
         "published_at": _format_date(pub_at),

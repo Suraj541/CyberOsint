@@ -17,6 +17,22 @@ connect_args = {}
 
 if db_url.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
+elif settings.USE_SQLITE_FALLBACK and not db_url.startswith("sqlite"):
+    # Rapid socket preflight to avoid slow multi-second connection timeouts on Windows
+    import socket
+    host = settings.POSTGRES_HOST or "127.0.0.1"
+    port = settings.POSTGRES_PORT or 5432
+    pg_reachable = False
+    try:
+        with socket.create_connection((host, port), timeout=0.2):
+            pg_reachable = True
+    except (OSError, ConnectionRefusedError):
+        pg_reachable = False
+
+    if not pg_reachable:
+        logger.info("PostgreSQL service not reachable on %s:%s. Using development SQLite database.", host, port)
+        db_url = settings.SQLITE_DATABASE_URL
+        connect_args = {"check_same_thread": False}
 
 # Create primary SQLAlchemy engine
 try:
@@ -25,8 +41,11 @@ try:
         connect_args=connect_args,
         pool_pre_ping=True,
     )
+    if settings.USE_SQLITE_FALLBACK and not db_url.startswith("sqlite"):
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
 except Exception as e:
-    logger.warning("Could not initialize database engine with %s: %s. Using SQLite fallback.", db_url, e)
+    logger.warning("Could not connect to database %s: %s. Using SQLite fallback.", db_url, e)
     db_url = settings.SQLITE_DATABASE_URL
     engine = create_engine(
         db_url,

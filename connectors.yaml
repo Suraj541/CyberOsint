@@ -1,0 +1,107 @@
+connectors:
+  bleeping_computer_feed:
+    enabled: true
+    type: rss
+    category: security_feeds
+    url: https://www.bleepingcomputer.com/feed/
+    interval_minutes: 40
+    priority: high
+    description: Commercial and community breaking news on enterprise intrusions and
+      ransomware.
+  cisa_operational_bulletins:
+    enabled: true
+    type: cert
+    category: government_cert
+    url: https://www.cisa.gov/cybersecurity-advisories/all.xml
+    interval_minutes: 60
+    priority: high
+    description: CISA and international CERT operational directives and high-priority
+      advisories.
+  cisa_kev_catalog:
+    enabled: true
+    type: cve
+    category: cve_databases
+    url: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+    interval_minutes: 60
+    priority: high
+    description: CISA Known Exploited Vulnerabilities (KEV) Catalog with active weaponization
+      flags.
+  microsoft_msrc_advisories:
+    enabled: true
+    type: vendor
+    category: vendor_advisories
+    url: https://api.msrc.microsoft.com/cvrf/v2.0/updates
+    interval_minutes: 120
+    priority: medium
+    description: Microsoft Security Response Center (MSRC) bulletins and CSAF updates.
+  google_project_zero_blog:
+    enabled: true
+    type: blog
+    category: security_blogs
+    url: https://googleprojectzero.blogspot.com/feeds/posts/default?alt=json
+    interval_minutes: 180
+    priority: medium
+    description: In-depth zero-day vulnerability technical teardowns and browser/kernel
+      exploit analysis.
+  github_security_advisories:
+    enabled: true
+    type: github
+    category: github
+    url: https://api.github.com/advisories
+    interval_minutes: 60
+    priority: high
+    api_key_env: GITHUB_TOKEN
+    description: GitHub Security Advisory Database (GHSA) tracking ecosystem CVEs
+      and exploits.
+  arxiv_computer_security:
+    enabled: true
+    type: research
+    category: research_databases
+    url: https://export.arxiv.org/api/query?search_query=cat:cs.CR&sortBy=submittedDate&sortOrder=descending&max_results=10
+    interval_minutes: 360
+    priority: low
+    description: Peer-reviewed scientific preprints and cryptography/network security
+      papers from arXiv.
+  defcon_conference_recordings:
+    enabled: false
+    type: video
+    category: video_platforms
+    url: https://www.youtube.com/feeds/videos.xml?channel_id=UC6Om9kAkl32dWlDSNlDS9Iw
+    interval_minutes: 720
+    priority: low
+    description: Conference presentation recordings and security demonstrations from
+      DEF CON.
+  ccc_media_proceedings:
+    enabled: true
+    type: conference
+    category: conference_sources
+    url: https://media.ccc.de/public/conferences
+    interval_minutes: 720
+    priority: low
+    description: Chaos Communication Congress (CCC) and BSides technical briefings
+      and slide decks.
+  infosec_exchange_social:
+    enabled: true
+    type: social
+    category: public_social
+    url: https://infosec.exchange/api/v1/timelines/public?local=true&limit=10
+    interval_minutes: 30
+    priority: medium
+    description: Decentralized infosec discussions and zero-day chatter from Mastodon
+      infosec.exchange.
+  malwarebazaar_threat_samples:
+    enabled: true
+    type: specialized
+    category: specialized_sources
+    url: https://mb-api.abuse.ch/api/v1/
+    interval_minutes: 60
+    priority: medium
+    api_key_env: MALWAREBAZAAR_API_KEY
+    description: Malware sample IOCs, SHA256 hashes, and family signatures from abuse.ch
+      MalwareBazaar.
+  example_source:
+    enabled: false
+    type: api
+    interval_minutes: 60
+    priority: medium
+    description: Configurable template API source for external threat feeds.

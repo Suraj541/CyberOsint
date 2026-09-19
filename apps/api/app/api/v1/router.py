@@ -5,9 +5,13 @@ Aggregates all endpoint routers under /api/v1.
 
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
+    backup,
     cache,
     classifier,
+    compliance,
+    connectors,
     content,
+    cve_intel,
     dashboard,
     deduplication,
     documents,
@@ -15,12 +19,18 @@ from app.api.v1.endpoints import (
     extractor,
     graph,
     health,
+    intelligence,
     mitre,
+    notifications,
+    observability,
     queue,
     recommendations,
     research,
+    scale,
     scheduler,
     search,
+    secrets,
+    security,
     semantic,
     sources,
     summaries,
@@ -33,14 +43,36 @@ api_router = APIRouter()
 # Health endpoints
 api_router.include_router(health.router, tags=["Health"])
 
+# Section 43 Step 42: Database Backup & Disaster Recovery
+api_router.include_router(backup.router)
+
+# Section 41 Step 40: Observability & Admin Metrics endpoints
+api_router.include_router(observability.router)
+
+# Security Hardening & Posture Controls (Section 37 Step 36)
+api_router.include_router(security.router)
+
+# Secret Management & Security Audit (Section 36 Step 35)
+api_router.include_router(secrets.router)
+
+# Advanced OSINT Connectors (Section 34 Step 33)
+api_router.include_router(connectors.router)
+
 # Source registry endpoints
 api_router.include_router(sources.router)
 
 # Normalized content endpoints
 api_router.include_router(content.router)
 
+# Real-time CVE, Threat Intel, and Live SSE Feeds
+api_router.include_router(cve_intel.router)
+
 # Watchlists & Surveillance endpoints (Section 32)
 api_router.include_router(watchlists.router)
+
+# Notifications & Alerting endpoints (Section 33 / Step 32)
+api_router.include_router(notifications.router)
+
 
 # Personalized Recommendations endpoints (Section 31)
 api_router.include_router(recommendations.router)
@@ -65,6 +97,16 @@ api_router.include_router(mitre.router)
 
 # Knowledge Graph endpoints (Section 27)
 api_router.include_router(graph.router)
+
+# Section 48 (Step 47): Version 3 Advanced Intelligence endpoints
+api_router.include_router(intelligence.router)
+
+# Section 49 (Step 48): Version 4 Scale Architecture endpoints
+api_router.include_router(scale.router)
+
+# Section 50 & 51 (Step 49): Compliance, System Readiness & Definition of Done
+api_router.include_router(compliance.router)
+
 
 
 

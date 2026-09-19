@@ -9,8 +9,12 @@ import {
 } from "../../lib/api";
 import { SourceConnectorItem, SourceQuality } from "../../lib/types";
 import { SourceQualityBadge } from "../../components/SourceQualityBadge";
+import { AdvancedConnectorsMatrix } from "../../components/AdvancedConnectorsMatrix";
+import { ConnectorsYamlEditor } from "../../components/ConnectorsYamlEditor";
+import { formatTime } from "../../lib/formatters";
 
 export default function SourcesPage() {
+  const [activeTab, setActiveTab] = useState<"connectors" | "config" | "registry">("connectors");
   const [sources, setSources] = useState<SourceConnectorItem[]>([]);
   const [qualities, setQualities] = useState<Record<number, SourceQuality>>({});
   const [syncingId, setSyncingId] = useState<number | null>(null);
@@ -81,73 +85,121 @@ export default function SourcesPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider">
-              INGESTION CONTROLLER & FEED REGISTRY
+              OSINT CONNECTORS & INGESTION CONTROL
             </span>
             <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30">
-              IMPLEMENT.md Section 28
+              IMPLEMENT.md Sections 28, 34 &amp; 35
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-            Source Reliability & Feed Registry
+            OSINT Intelligence Sources &amp; Connectors
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-3xl">
-            Internal ranking indicator evaluating authority, accuracy, technical depth,
-            originality, and historical reliability. (Non-authoritative ranking mechanism).
+            11-category prioritized connector pipeline, declarative <code className="text-cyan-300 font-mono">connectors.yaml</code> hot-reloadable configuration,
+            and source reliability ranking.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Primary View Switcher */}
+        <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-xl bg-slate-900 border border-slate-800 shadow-md">
           <button
-            onClick={handleRecalculateAll}
-            disabled={recalculating}
-            className="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-300 text-xs font-mono transition-colors flex items-center gap-1.5"
-            title="Recalculate 5-dimension quality metrics for all sources"
-          >
-            <span className={recalculating ? "animate-spin" : ""}>↻</span>
-            <span>{recalculating ? "Evaluating..." : "Recalculate Reliability"}</span>
-          </button>
-
-          <button
-            onClick={() => {
-              alert("To register a new source, use the /api/v1/sources endpoint or source registry CLI.");
-            }}
-            className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs font-mono transition-colors shadow-sm"
-          >
-            + Register New Feed
-          </button>
-        </div>
-      </div>
-
-      {notification && (
-        <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono flex items-center justify-between animate-fadeIn">
-          <span>⚡ {notification}</span>
-          <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white">
-            ✕
-          </button>
-        </div>
-      )}
-
-      {/* Tier Filter Tabs */}
-      <div className="flex items-center gap-2 p-1 rounded-lg bg-slate-900/90 border border-slate-800 self-start w-fit">
-        {[
-          { id: "all", label: "All Sources" },
-          { id: "tier1", label: "Tier 1: Authoritative (A+ / A)" },
-          { id: "tier2", label: "Tier 2: High Reliability (B+)" },
-          { id: "tier3", label: "Tier 3: Standard (B / C)" },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setSelectedTier(tab.id)}
-            className={`px-3 py-1.5 rounded-md text-xs font-mono transition-all ${
-              selectedTier === tab.id
-                ? "bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30"
-                : "text-slate-400 hover:text-slate-200"
+            onClick={() => setActiveTab("connectors")}
+            className={`px-3.5 py-2 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === "connectors"
+                ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-md"
+                : "text-slate-400 hover:text-white"
             }`}
           >
-            {tab.label}
+            <span>⚡</span>
+            <span>11 Priority Connectors (Sec 34)</span>
           </button>
-        ))}
+
+          <button
+            onClick={() => setActiveTab("config")}
+            className={`px-3.5 py-2 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === "config"
+                ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-md"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <span>⚙️</span>
+            <span>YAML Config (Sec 35)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("registry")}
+            className={`px-3.5 py-2 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === "registry"
+                ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-md"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <span>📡</span>
+            <span>Feed Registry &amp; Quality (Sec 28)</span>
+          </button>
+        </div>
       </div>
+
+      {/* Tab Content */}
+      {activeTab === "connectors" ? (
+        <AdvancedConnectorsMatrix />
+      ) : activeTab === "config" ? (
+        <ConnectorsYamlEditor />
+      ) : (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Tier Filter Tabs */}
+            <div className="flex items-center gap-2 p-1 rounded-lg bg-slate-900/90 border border-slate-800 self-start w-fit">
+              {[
+                { id: "all", label: "All Sources" },
+                { id: "tier1", label: "Tier 1: Authoritative (A+ / A)" },
+                { id: "tier2", label: "Tier 2: High Reliability (B+)" },
+                { id: "tier3", label: "Tier 3: Standard (B / C)" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedTier(tab.id)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-mono transition-all ${
+                    selectedTier === tab.id
+                      ? "bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRecalculateAll}
+                disabled={recalculating}
+                className="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-300 text-xs font-mono transition-colors flex items-center gap-1.5"
+                title="Recalculate 5-dimension quality metrics for all sources"
+              >
+                <span className={recalculating ? "animate-spin" : ""}>↻</span>
+                <span>{recalculating ? "Evaluating..." : "Recalculate Reliability"}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  alert("To register a new source, use the /api/v1/sources endpoint or source registry CLI.");
+                }}
+                className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs font-mono transition-colors shadow-sm"
+              >
+                + Register New Feed
+              </button>
+            </div>
+          </div>
+
+          {notification && (
+            <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono flex items-center justify-between animate-fadeIn">
+              <span>⚡ {notification}</span>
+              <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white">
+                ✕
+              </button>
+            </div>
+          )}
 
       {/* Sources Listing */}
       <div className="space-y-4">
@@ -187,7 +239,7 @@ export default function SourcesPage() {
                     <span>
                       Last Run:{" "}
                       {src.last_fetched_at
-                        ? new Date(src.last_fetched_at).toLocaleTimeString()
+                        ? formatTime(src.last_fetched_at)
                         : "Not yet polled"}
                     </span>
                     <span>&bull;</span>
@@ -300,5 +352,7 @@ export default function SourcesPage() {
         })}
       </div>
     </div>
-  );
+  )}
+</div>
+);
 }

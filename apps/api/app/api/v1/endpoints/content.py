@@ -4,14 +4,23 @@ Provides search, filtering, and retrieval endpoints for normalized cybersecurity
 Conforms strictly to IMPLEMENT.md Section 6.
 """
 
+import json
+import re
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.models.content import Content
 from app.models.source import Source
-from app.schemas.content import ContentDetailResponse, ContentEntityDetail, ContentResponse
+from app.schemas.content import (
+    ContentDetailResponse,
+    ContentEntityDetail,
+    ContentResponse,
+    DocumentMetadataSchema,
+    VideoMetadataSchema,
+    VideoTimestampItem,
+)
 from app.schemas.summary import (
     ContentSummaryOut,
     SummaryGenerateRequest,
@@ -20,6 +29,70 @@ from app.schemas.summary import (
 from services.summarization.service import summarization_service
 
 router = APIRouter(prefix="/content", tags=["Content"])
+
+
+def _build_video_meta(c: Content, source_name: Optional[str] = None) -> Optional[VideoMetadataSchema]:
+    text_to_scan = f"{c.description or ''}\n\n{c.raw_content or ''}"
+    if c.content_type not in ("video", "conference") and "00:" not in text_to_scan:
+        return None
+
+    try:
+        from connectors.video.transcript import transcript_processor
+        ts_items = transcript_processor.extract_timestamps(text_to_scan)
+
+        parsed_raw = {}
+        if c.raw_content and c.raw_content.strip().startswith("{"):
+            try:
+                parsed_raw = json.loads(c.raw_content)
+            except Exception:
+                parsed_raw = {}
+
+        duration = parsed_raw.get("duration")
+        thumb_url = parsed_raw.get("thumbnail_url")
+        conference = parsed_raw.get("conference")
+        speakers = parsed_raw.get("speakers") or ([c.author] if c.author and c.author != "Conference Presenter" else [])
+        if isinstance(speakers, str):
+            speakers = [speakers]
+
+        if not thumb_url and c.canonical_url and "youtube.com/watch?v=" in c.canonical_url:
+            m = re.search(r"v=([a-zA-Z0-9_-]+)", c.canonical_url)
+            if m:
+                thumb_url = f"https://i.ytimg.com/vi/{m.group(1)}/hqdefault.jpg"
+
+        duration_fmt = None
+        if duration:
+            try:
+                dur_int = int(duration)
+                m_val, s_val = divmod(dur_int, 60)
+                h_val, m_val = divmod(m_val, 60)
+                if h_val > 0:
+                    duration_fmt = f"{h_val}h {m_val}m"
+                else:
+                    duration_fmt = f"{m_val}m {s_val}s"
+            except Exception:
+                duration_fmt = str(duration)
+
+        return VideoMetadataSchema(
+            channel=c.author or source_name,
+            duration=int(duration) if duration and str(duration).isdigit() else None,
+            duration_formatted=duration_fmt,
+            thumbnail_url=thumb_url,
+            conference=conference or source_name,
+            speakers=speakers,
+            has_transcript=bool(c.raw_content and "Transcript:" in c.raw_content),
+            timestamps=[
+                VideoTimestampItem(
+                    timestamp_str=ts.timestamp_str,
+                    seconds=ts.seconds,
+                    topic=ts.topic,
+                    text=ts.text,
+                    entities=ts.entities,
+                )
+                for ts in ts_items
+            ],
+        )
+    except Exception:
+        return None
 
 
 @router.get(
@@ -38,12 +111,16 @@ def list_content(
     db: Session = Depends(get_db),
 ) -> List[ContentResponse]:
     """List normalized cybersecurity intelligence items with pagination and filters."""
-    query = db.query(Content)
+    query = db.query(Content).options(joinedload(Content.source), joinedload(Content.content_tags))
 
     if source_id is not None:
         query = query.filter(Content.source_id == source_id)
     if content_type:
-        query = query.filter(Content.content_type == content_type)
+        types = [t.strip() for t in content_type.split(",") if t.strip()]
+        if len(types) == 1:
+            query = query.filter(Content.content_type == types[0])
+        elif len(types) > 1:
+            query = query.filter(Content.content_type.in_(types))
     if language:
         query = query.filter(Content.language == language)
     if status_filter:
@@ -51,7 +128,61 @@ def list_content(
 
     query = query.order_by(Content.published_at.desc().nullslast(), Content.created_at.desc())
     items = query.offset(skip).limit(limit).all()
-    return items
+
+    results: List[ContentResponse] = []
+    for c in items:
+        source_name = c.source.name if c.source else None
+        category = (
+            c.source.category
+            if c.source and c.source.category
+            else "threat_intelligence"
+        )
+        tags = [ct.tag.name for ct in c.content_tags if ct.tag] if hasattr(c, "content_tags") and c.content_tags else []
+
+        video_meta = _build_video_meta(c, source_name)
+
+        doc_meta = None
+        if c.content_type in ("document", "paper", "whitepaper", "research", "advisory"):
+            import re
+            authors_list = [c.author] if c.author else ([source_name] if source_name else [])
+            w_count = len(re.findall(r"\b\w+\b", c.raw_content or c.description or ""))
+            doc_meta = DocumentMetadataSchema(
+                document_type="pdf" if ".pdf" in (c.canonical_url or "").lower() else "markdown",
+                authors=authors_list,
+                publication_date=c.published_at.isoformat() if c.published_at else None,
+                abstract=c.description or c.summary,
+                word_count=w_count,
+            )
+
+        results.append(
+            ContentResponse(
+                id=c.id,
+                source_id=c.source_id,
+                title=c.title,
+                description=c.description,
+                content_type=c.content_type,
+                canonical_url=c.canonical_url,
+                author=c.author,
+                published_at=c.published_at,
+                discovered_at=c.discovered_at,
+                language=c.language,
+                summary=c.summary,
+                content_hash=c.content_hash,
+                quality_score=c.quality_score,
+                relevance_score=c.relevance_score,
+                confidence_score=c.confidence_score,
+                status=c.status,
+                created_at=c.created_at,
+                updated_at=c.updated_at,
+                source=source_name or c.author or "OSINT",
+                source_name=source_name,
+                category=category,
+                tags=tags,
+                video_metadata=video_meta,
+                document_metadata=doc_meta,
+            )
+        )
+    return results
 
 
 @router.get(
@@ -98,27 +229,7 @@ def get_content_detail(
                 )
 
     # Check for video intelligence metadata & timestamps
-    video_meta = None
-    text_to_scan = f"{content.description or ''}\n\n{content.raw_content or ''}"
-    if content.content_type == "video" or "00:" in text_to_scan:
-        from connectors.video.transcript import transcript_processor
-        from app.schemas.content import VideoMetadataSchema, VideoTimestampItem
-        ts_items = transcript_processor.extract_timestamps(text_to_scan)
-        if ts_items or content.content_type == "video":
-            video_meta = VideoMetadataSchema(
-                channel=content.author,
-                has_transcript=bool(content.raw_content and "Transcript:" in content.raw_content),
-                timestamps=[
-                    VideoTimestampItem(
-                        timestamp_str=ts.timestamp_str,
-                        seconds=ts.seconds,
-                        topic=ts.topic,
-                        text=ts.text,
-                        entities=ts.entities,
-                    )
-                    for ts in ts_items
-                ],
-            )
+    video_meta = _build_video_meta(content, source_name)
 
     # Check for document intelligence metadata
     document_meta = None

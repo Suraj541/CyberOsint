@@ -179,6 +179,107 @@ def poll_active_rss_sources(scheduler: "PeriodicScheduler") -> Dict[str, Any]:
         }
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Section 43 Step 42: Automated Backup Job Functions
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _run_daily_backup(scheduler: "PeriodicScheduler") -> dict:  # type: ignore[name-defined]
+    """
+    Daily full database backup with immediate verification.
+    Per IMPLEMENT.md Section 43: 'Do not assume a database backup is valid
+    until you have restored it.' — auto_verify=True enforces this.
+    """
+    try:
+        from services.backup import backup_manager
+        from services.backup.manager import BackupType
+        record = backup_manager.create_backup(backup_type=BackupType.FULL, auto_verify=True)
+        logger.info(
+            "Daily backup completed: id=%s status=%s size=%d bytes",
+            record.backup_id,
+            record.status.value,
+            record.file_size_bytes,
+        )
+        return {
+            "backup_id": record.backup_id,
+            "status": record.status.value,
+            "file_size_bytes": record.file_size_bytes,
+            "verified": record.status.value == "verified",
+        }
+    except Exception as exc:
+        logger.error("Daily backup job failed: %s", exc)
+        raise
+
+
+def _run_pitr_snapshot(scheduler: "PeriodicScheduler") -> dict:  # type: ignore[name-defined]
+    """Hourly Point-In-Time Recovery snapshot."""
+    try:
+        from services.backup import backup_manager
+        record = backup_manager.create_pitr_wal_segment()
+        logger.info("PITR snapshot created: id=%s", record.backup_id)
+        return {"backup_id": record.backup_id, "status": record.status.value}
+    except Exception as exc:
+        logger.error("PITR snapshot job failed: %s", exc)
+        raise
+
+
+def _run_retention_pruning(scheduler: "PeriodicScheduler") -> dict:  # type: ignore[name-defined]
+    """Weekly retention policy enforcement."""
+    try:
+        from services.backup import backup_manager
+        from services.backup.retention import DEVELOPMENT_POLICY, PRODUCTION_POLICY
+        from app.config import settings
+
+        policy = PRODUCTION_POLICY if settings.ENVIRONMENT == "production" else DEVELOPMENT_POLICY
+        deleted = backup_manager.apply_retention_policy(policy)
+        logger.info("Retention pruning: deleted %d backup(s) [policy=%s]", len(deleted), policy.description)
+        return {"deleted_count": len(deleted), "policy": policy.description}
+    except Exception as exc:
+        logger.error("Retention pruning job failed: %s", exc)
+        raise
+
+
+
+
+def sync_connectors_yaml_to_sources(session_factory: Callable[[], Session]) -> int:
+    """
+    Synchronizes configured sources from connectors.yaml into the database Source table.
+    Ensures that every enabled connector has a corresponding active database record.
+    """
+    from connectors.config import connector_config_manager
+    configs = connector_config_manager.list_configs()
+    seeded = 0
+    with session_factory() as db:
+        for key, conf in configs.items():
+            if not conf.url:
+                continue
+            existing = db.query(Source).filter(
+                (Source.name == key) | (Source.url == conf.url)
+            ).first()
+            if not existing:
+                src = Source(
+                    name=key,
+                    url=conf.url,
+                    source_type=conf.type,
+                    access_method=conf.type,
+                    platform=conf.category or conf.type,
+                    category=conf.category,
+                    active=conf.enabled,
+                    reliability_score=0.9,
+                )
+                db.add(src)
+                seeded += 1
+            else:
+                existing.url = conf.url
+                existing.active = conf.enabled
+                existing.source_type = conf.type
+                existing.access_method = conf.type
+                existing.platform = conf.category or conf.type
+                existing.category = conf.category
+        db.commit()
+    logger.info("Synchronized %d new sources from connectors.yaml into database", seeded)
+    return seeded
+
+
 class PeriodicScheduler:
     """
     Lightweight, thread-safe background scheduler for periodic OSINT feed execution.
@@ -206,6 +307,63 @@ class PeriodicScheduler:
             interval_seconds=rss_interval_secs,
             func=poll_active_rss_sources,
             enabled=True,
+        )
+
+        # Register the 11 prioritized OSINT connector categories as scheduled jobs
+        from connectors.manager import PRIORITY_CONNECTOR_SPECS, connector_manager
+        for idx, spec in enumerate(PRIORITY_CONNECTOR_SPECS):
+            cid = spec["id"]
+            interval_mins = connector_manager._intervals.get(cid, 60)
+            interval_secs = max(60.0, float(interval_mins * 60))
+
+            def _make_connector_job(connector_id: str):
+                def _job_func(sched: "PeriodicScheduler") -> Dict[str, Any]:
+                    with sched.session_factory() as db:
+                        items = connector_manager.run_connector(connector_id, db=db)
+                        telemetry = connector_manager._last_run_telemetry.get(connector_id, {})
+                        return {
+                            "connector_id": connector_id,
+                            "items_discovered": len(items),
+                            "items_inserted": telemetry.get("items_inserted", len(items)),
+                            "status": telemetry.get("last_status", "success"),
+                        }
+                return _job_func
+
+            job = self.register_job(
+                job_id=f"connector_{cid}",
+                name=f"OSINT Connector: {spec['name']}",
+                interval_seconds=interval_secs,
+                func=_make_connector_job(cid),
+                enabled=connector_manager.is_enabled(cid),
+                metadata={"category": spec["category"], "priority": spec["priority"]},
+            )
+            # Stagger initial run slightly so all live data is refreshed shortly after startup
+            job.state.next_run = datetime.now(timezone.utc) + timedelta(seconds=10.0 + idx * 5.0)
+
+        # Section 43 Step 42: Automated Database Backup Jobs
+        self.register_job(
+            job_id="db_daily_backup",
+            name="Automated Daily Full Database Backup",
+            interval_seconds=86_400,   # 24 hours
+            func=_run_daily_backup,
+            enabled=True,
+            metadata={"backup_type": "full", "auto_verify": True},
+        )
+        self.register_job(
+            job_id="db_hourly_pitr",
+            name="Hourly PITR Snapshot (Point-In-Time Recovery)",
+            interval_seconds=3_600,    # 1 hour
+            func=_run_pitr_snapshot,
+            enabled=True,
+            metadata={"pitr": True},
+        )
+        self.register_job(
+            job_id="db_retention_pruning",
+            name="Weekly Backup Retention Pruning",
+            interval_seconds=604_800,  # 7 days
+            func=_run_retention_pruning,
+            enabled=True,
+            metadata={"policy": "development"},
         )
 
     @property
@@ -308,6 +466,11 @@ class PeriodicScheduler:
 
     def start(self) -> None:
         """Start background scheduler loop thread."""
+        try:
+            sync_connectors_yaml_to_sources(self.session_factory)
+        except Exception as exc:
+            logger.warning("Could not synchronize sources to database on scheduler start: %s", exc)
+
         with self._lock:
             if self._is_running:
                 logger.debug("Scheduler is already running")

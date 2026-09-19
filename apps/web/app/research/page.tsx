@@ -29,11 +29,8 @@ export default function ResearchPage() {
   useEffect(() => {
     // Load suggested questions and paper archive
     getSuggestedResearchQueries().then(setSuggestedQueries);
-    fetchRecentContent().then((all) => {
-      const filtered = all.filter(
-        (i) => i.content_type === "paper" || i.category === "application_security"
-      );
-      setArchiveItems(filtered.length > 0 ? filtered : all);
+    fetchRecentContent("research,paper,advisory,article", undefined, 50).then((all) => {
+      setArchiveItems(all);
     });
 
     // Auto-run default Kubernetes question per IMPLEMENT.md Section 30

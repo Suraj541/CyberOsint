@@ -48,6 +48,11 @@ def is_ip_allowed(ip_str: str, allow_private: bool = False) -> bool:
         metadata_ip = ipaddress.ip_address("169.254.169.254")
         return ip != metadata_ip
 
+    NAT64_PREFIX = ipaddress.ip_network("64:ff9b::/96")
+    if isinstance(ip, ipaddress.IPv6Address) and ip in NAT64_PREFIX:
+        embedded_v4 = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+        return is_ip_allowed(str(embedded_v4), allow_private=allow_private)
+
     if ip.is_loopback or ip.is_private or ip.is_link_local or ip.is_multicast or ip.is_reserved or ip.is_unspecified:
         return False
 
