@@ -1,4 +1,4 @@
-# the_info — Cybersecurity OSINT Intelligence Platform
+# CyberOsint — Cybersecurity OSINT Intelligence Platform
 
 > A production-grade, sovereign Open Source Intelligence (OSINT) platform engineered to continuously ingest, normalize, classify, cross-link, and correlate cybersecurity intelligence from authoritative global threat feeds, vulnerability databases, and security advisories into an interactive knowledge graph and hybrid search engine.
 
