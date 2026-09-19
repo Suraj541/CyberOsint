@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,10 +23,15 @@
   <meta property="twitter:card" content="summary_large_image">
   <meta property="twitter:url" content="https://suraj541.github.io/CyberOsint/">
   <meta property="twitter:title" content="CyberOsint — Cybersecurity OSINT Intelligence Platform">
-  <meta property="twitter:description" content="Collect. Normalize. Search. Investigate. Open-source cybersecurity intelligence platform with hybrid RRF search and entity knowledge graph.">
+  <meta property="twitter:description" content="Sovereign cybersecurity OSINT platform featuring hybrid BM25 + dense vector RRF search and interactive knowledge graph.">
 
-  <!-- Favicon (Inline SVG Shield) -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e5a93b'%3E%3Cpath d='M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 2.18l7 3.89v4.93c0 4.54-3.14 8.78-7 9.87-3.86-1.09-7-5.33-7-9.87V8.07l7-3.89zM11 7h2v6h-2V7zm0 8h2v2h-2v-2z'/%3E%3C/svg%3E">
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e5a93b'><path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Stylesheet -->
   <link rel="stylesheet" href="styles.css">
@@ -48,21 +53,6 @@
       "url": "https://github.com/Suraj541"
     }
   }
-  </script>
-
-  <!-- Early Theme Detection Script to prevent FOUC -->
-  <script>
-    (function() {
-      try {
-        var stored = localStorage.getItem('theme');
-        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (stored === 'light' || (!stored && !prefersDark)) {
-          document.documentElement.setAttribute('data-theme', 'light');
-        } else {
-          document.documentElement.setAttribute('data-theme', 'dark');
-        }
-      } catch(e) {}
-    })();
   </script>
 </head>
 <body>
@@ -103,24 +93,6 @@
           </svg>
           <span>View on GitHub</span>
         </a>
-
-        <!-- Light & Night Mode Toggle Button -->
-        <button id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Toggle light and night mode" title="Toggle light and night mode">
-          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="5"></circle>
-            <line x1="12" y1="1" x2="12" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="23"></line>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-            <line x1="1" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="12" x2="23" y2="12"></line>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-          </svg>
-          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-        </button>
 
         <button class="mobile-toggle" aria-label="Toggle navigation menu">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
