@@ -3,7 +3,7 @@
 ## 1. Vulnerability Reporting
 
 If you discover a potential security vulnerability in the **Cybersecurity OSINT Intelligence Platform**, please report it responsibly:
-- **Email**: `security@cyber-osint.local` (or file a private security advisory via repository tools).
+- **Email**: `securitycyberosint@gmail.com` (or file a private security advisory via repository tools).
 - Please include detailed steps to reproduce, impact assessment, and any proof-of-concept material.
 - We commit to acknowledging receipt within 48 hours and providing regular remediation status updates.
 
