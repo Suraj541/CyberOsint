@@ -4,7 +4,6 @@
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-  initThemeToggle();
   initNavigation();
   initArchitectureInspector();
   initSearchSimulator();
@@ -12,38 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initQuickstartTabs();
   initCopyButtons();
 });
-
-/* ==========================================================================
-   0. Theme Toggle (Light & Night Mode)
-   ========================================================================== */
-function initThemeToggle() {
-  const toggleBtn = document.getElementById("theme-toggle-btn");
-  if (!toggleBtn) return;
-
-  const currentTheme = () => document.documentElement.getAttribute("data-theme") || "dark";
-
-  function applyTheme(theme) {
-    document.documentElement.setAttribute("data-theme", theme);
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-    localStorage.setItem("theme", theme);
-    toggleBtn.setAttribute("title", theme === "dark" ? "Switch to Light Mode" : "Switch to Night Mode");
-    toggleBtn.setAttribute("aria-label", theme === "dark" ? "Switch to Light Mode" : "Switch to Night Mode");
-  }
-
-  const stored = localStorage.getItem("theme");
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const initial = stored ? stored : (prefersDark ? "dark" : "light");
-  applyTheme(initial);
-
-  toggleBtn.addEventListener("click", () => {
-    const next = currentTheme() === "dark" ? "light" : "dark";
-    applyTheme(next);
-  });
-}
 
 /* ==========================================================================
    1. Navigation & Scroll Spy

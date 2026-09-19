@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { NAV_ITEMS } from "./Sidebar";
-import { ThemeToggle } from "./ThemeToggle";
 
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -72,9 +71,6 @@ export const Navbar: React.FC = () => {
           <span className="w-2 h-2 rounded-full bg-[#2D7A4F] dark:bg-[#4ADE80]" />
           <span>FASTAPI OK</span>
         </div>
-
-        {/* Light & Night Mode Toggle Button */}
-        <ThemeToggle />
       </div>
 
       {/* Mobile Drawer Dropdown */}

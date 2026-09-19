@@ -4,22 +4,6 @@
 
 @layer base {
   :root {
-    --background: 247 243 232;
-    --foreground: 23 23 20;
-    --card-bg: #FFFDF5;
-    --card-border: #E4DBC8;
-    --card-border-hover: #C2821A;
-    --body-bg: #F7F3E8;
-    --text-primary: #171714;
-    --text-muted: #68655B;
-    --paper-panel: #F1EBD8;
-    --paper-muted: #F1EBD8;
-    --border-dark: #D8CEB9;
-    --accent-amber: #C2821A;
-    color-scheme: light;
-  }
-
-  .dark {
     --background: 8 9 12;
     --foreground: 255 255 255;
     --card-bg: #0F1218;
@@ -36,175 +20,130 @@
   }
 
   body {
-    background-color: var(--body-bg);
-    color: var(--text-primary);
+    background-color: #08090C;
+    color: #FFFFFF;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     overflow-x: hidden;
-    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
 /* ==========================================================================
-   Universal Light & Night Mode Color Rules
-   Light Mode = Solid Black / Ink Typography on Archival Ivory
-   Night Mode = Pure White & Light Slate Typography on Dark Charcoal
+   Permanent Sovereign Night Mode (Cybersecurity Dark Charcoal & White Font)
    ========================================================================== */
 
-/* 1. Light Mode Defaults (Black Text) */
-:root:not(.dark) h1,
-:root:not(.dark) h2,
-:root:not(.dark) h3,
-:root:not(.dark) h4,
-:root:not(.dark) h5,
-:root:not(.dark) h6,
-:root:not(.dark) strong,
-:root:not(.dark) b {
-  color: #171714;
-}
-
-:root:not(.dark) [class*="text-[#171714]"],
-:root:not(.dark) .text-paper-ink {
-  color: #171714;
-}
-
-/* 2. Night Mode Enforcement (White Text & Dark Cards) */
-.dark body,
-.dark main {
+/* 1. Global Typography: Pure White for all titles, headings, and bolds */
+body,
+main {
   background-color: #08090C !important;
   color: #FFFFFF !important;
 }
 
-.dark h1,
-.dark h2,
-.dark h3,
-.dark h4,
-.dark h5,
-.dark h6,
-.dark strong,
-.dark b {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+strong,
+b {
   color: #FFFFFF !important;
 }
 
-/* Force elements with light-mode text classes to white in night mode */
-.dark [class*="text-[#171714]"],
-.dark .text-paper-ink {
+/* 2. Text colors */
+[class*="text-[#171714]"],
+.text-paper-ink {
   color: #FFFFFF !important;
 }
 
-.dark [class*="text-[#68655B]"],
-.dark .text-paper-graphite {
+[class*="text-[#68655B]"],
+.text-paper-graphite {
   color: #CBD5E1 !important;
 }
 
-.dark [class*="text-[#8C887B]"],
-.dark [class*="text-[#55524A]"],
-.dark .text-paper-muted {
+[class*="text-[#8C887B]"],
+[class*="text-[#55524A]"],
+.text-paper-muted {
   color: #94A3B8 !important;
 }
 
-/* Force cards and surface panels to dark charcoal in night mode */
-.dark [class*="bg-[#FFFDF5]"],
-.dark .bg-paper-surface,
-.dark .bg-paper-card {
+/* 3. Cards & Panels */
+[class*="bg-[#FFFDF5]"],
+.bg-paper-surface,
+.bg-paper-card,
+.cyber-card {
   background-color: #0F1218 !important;
-}
-
-.dark [class*="bg-[#F7F3E8]"],
-.dark .bg-paper-bg {
-  background-color: #08090C !important;
-}
-
-.dark [class*="bg-[#F1EBD8]"],
-.dark .bg-paper-panel {
-  background-color: #161B26 !important;
-}
-
-.dark [class*="bg-[#EAE3CE]"],
-.dark [class*="bg-[#EAE3CE]/50"] {
-  background-color: #1A202C !important;
-}
-
-/* Force light borders to subtle dark borders in night mode */
-.dark [class*="border-[#E4DBC8]"],
-.dark .border-paper-border {
   border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
-.dark [class*="border-[#D8CEB9]"],
-.dark .border-paper-borderDark {
+[class*="bg-[#F7F3E8]"],
+.bg-paper-bg {
+  background-color: #08090C !important;
+}
+
+[class*="bg-[#F1EBD8]"],
+.bg-paper-panel {
+  background-color: #161B26 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[class*="bg-[#EAE3CE]"],
+[class*="bg-[#EAE3CE]/50"] {
+  background-color: #1A202C !important;
+}
+
+/* 4. Borders */
+[class*="border-[#E4DBC8]"],
+.border-paper-border {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[class*="border-[#D8CEB9]"],
+.border-paper-borderDark {
   border-color: rgba(255, 255, 255, 0.18) !important;
 }
 
-/* Inputs, textareas, search bars in night mode */
-.dark input,
-.dark textarea,
-.dark select {
+/* 5. Inputs, textareas, search bars */
+input,
+textarea,
+select {
   color: #FFFFFF !important;
   background-color: #161B26 !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-.dark input::placeholder,
-.dark textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: #94A3B8 !important;
 }
 
-/* Custom Sleek Archival Scrollbar */
+/* Sleek Dark Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #F7F3E8;
-}
-.dark ::-webkit-scrollbar-track {
   background: #08090C;
 }
 ::-webkit-scrollbar-thumb {
-  background: #E4DBC8;
+  background: #222734;
   border-radius: 3px;
 }
-.dark ::-webkit-scrollbar-thumb {
-  background: #222734;
-}
 ::-webkit-scrollbar-thumb:hover {
-  background: #D8CEB9;
-}
-.dark ::-webkit-scrollbar-thumb:hover {
   background: #2D3446;
 }
 
-/* Dossier Paper Card Utilities (Light & Dark) */
+/* Dossier Card Utility */
 .cyber-card {
-  background: #FFFDF5;
-  border: 1px solid #E4DBC8;
-  box-shadow: 0 1px 3px rgba(23, 23, 20, 0.04), 0 4px 12px rgba(23, 23, 20, 0.02);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   transition: all 0.2s ease-in-out;
 }
 
 .cyber-card:hover {
-  border-color: #C2821A;
-  box-shadow: 0 4px 16px -2px rgba(194, 130, 26, 0.12);
-}
-
-.dark .cyber-card {
-  background: #0F1218;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-}
-
-.dark .cyber-card:hover {
-  border-color: #E5A93B;
+  border-color: #E5A93B !important;
   box-shadow: 0 4px 20px -2px rgba(229, 169, 59, 0.2);
 }
 
 .cyber-glass {
-  background: rgba(255, 253, 245, 0.92);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid #E4DBC8;
-}
-
-.dark .cyber-glass {
   background: rgba(13, 15, 20, 0.92);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -212,17 +151,12 @@
 
 /* Archival Stamp & Tag */
 .dossier-stamp {
-  border: 1.5px solid #C2821A;
-  color: #C2821A;
+  border: 1.5px solid #E5A93B;
+  color: #E5A93B;
   text-transform: uppercase;
   font-family: var(--font-mono, monospace);
   font-weight: 700;
   letter-spacing: 0.08em;
-}
-
-.dark .dossier-stamp {
-  border-color: #E5A93B;
-  color: #E5A93B;
 }
 
 /* Pulsing Status Dot */

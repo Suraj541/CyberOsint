@@ -15,27 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function() {
-              try {
-                var stored = localStorage.getItem('theme');
-                var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                if (stored === 'dark' || (!stored && prefersDark)) {
-                  document.documentElement.classList.add('dark');
-                  document.documentElement.setAttribute('data-theme', 'dark');
-                } else {
-                  document.documentElement.classList.remove('dark');
-                  document.documentElement.setAttribute('data-theme', 'light');
-                }
-              } catch(e) {}
-            })();`,
-          }}
-        />
-      </head>
-      <body className="bg-[#F7F3E8] dark:bg-[#08090C] text-[#171714] dark:text-[#F8FAFC] min-h-screen flex flex-row antialiased selection:bg-[#C2821A]/20 selection:text-[#171714] dark:selection:text-[#F8FAFC] transition-colors duration-200">
+    <html lang="en" className="dark">
+      <body className="bg-[#08090C] text-[#F8FAFC] min-h-screen flex flex-row antialiased selection:bg-[#E5A93B]/20 selection:text-white">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0 min-h-screen">
           <Navbar />
