@@ -6,13 +6,31 @@
   :root {
     --background: 247 243 232;
     --foreground: 23 23 20;
+    --card-bg: #FFFDF5;
+    --card-border: #E4DBC8;
+    --card-border-hover: #C2821A;
+    --body-bg: #F7F3E8;
+    --text-primary: #171714;
+    --text-muted: #68655B;
+  }
+
+  .dark {
+    --background: 8 9 12;
+    --foreground: 248 250 252;
+    --card-bg: #0F1218;
+    --card-border: rgba(255, 255, 255, 0.08);
+    --card-border-hover: #E5A93B;
+    --body-bg: #08090C;
+    --text-primary: #F8FAFC;
+    --text-muted: #94A3B8;
   }
 
   body {
-    background-color: #F7F3E8;
-    color: #171714;
+    background-color: var(--body-bg);
+    color: var(--text-primary);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     overflow-x: hidden;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
@@ -24,15 +42,24 @@
 ::-webkit-scrollbar-track {
   background: #F7F3E8;
 }
+.dark ::-webkit-scrollbar-track {
+  background: #08090C;
+}
 ::-webkit-scrollbar-thumb {
   background: #E4DBC8;
   border-radius: 3px;
 }
+.dark ::-webkit-scrollbar-thumb {
+  background: #222734;
+}
 ::-webkit-scrollbar-thumb:hover {
   background: #D8CEB9;
 }
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #2D3446;
+}
 
-/* Dossier Paper Card Utilities */
+/* Dossier Paper Card Utilities (Light & Dark) */
 .cyber-card {
   background: #FFFDF5;
   border: 1px solid #E4DBC8;
@@ -45,10 +72,27 @@
   box-shadow: 0 4px 16px -2px rgba(194, 130, 26, 0.12);
 }
 
+.dark .cyber-card {
+  background: #0F1218;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.dark .cyber-card:hover {
+  border-color: #E5A93B;
+  box-shadow: 0 4px 20px -2px rgba(229, 169, 59, 0.2);
+}
+
 .cyber-glass {
   background: rgba(255, 253, 245, 0.92);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid #E4DBC8;
+}
+
+.dark .cyber-glass {
+  background: rgba(13, 15, 20, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Archival Stamp & Tag */
@@ -59,6 +103,11 @@
   font-family: var(--font-mono, monospace);
   font-weight: 700;
   letter-spacing: 0.08em;
+}
+
+.dark .dossier-stamp {
+  border-color: #E5A93B;
+  color: #E5A93B;
 }
 
 /* Pulsing Status Dot */
