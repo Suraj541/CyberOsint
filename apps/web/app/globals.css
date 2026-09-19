@@ -12,17 +12,27 @@
     --body-bg: #F7F3E8;
     --text-primary: #171714;
     --text-muted: #68655B;
+    --paper-panel: #F1EBD8;
+    --paper-muted: #F1EBD8;
+    --border-dark: #D8CEB9;
+    --accent-amber: #C2821A;
+    color-scheme: light;
   }
 
   .dark {
     --background: 8 9 12;
-    --foreground: 248 250 252;
+    --foreground: 255 255 255;
     --card-bg: #0F1218;
-    --card-border: rgba(255, 255, 255, 0.08);
+    --card-border: rgba(255, 255, 255, 0.12);
     --card-border-hover: #E5A93B;
     --body-bg: #08090C;
-    --text-primary: #F8FAFC;
-    --text-muted: #94A3B8;
+    --text-primary: #FFFFFF;
+    --text-muted: #CBD5E1;
+    --paper-panel: #161B26;
+    --paper-muted: #161B26;
+    --border-dark: rgba(255, 255, 255, 0.18);
+    --accent-amber: #E5A93B;
+    color-scheme: dark;
   }
 
   body {
@@ -32,6 +42,111 @@
     overflow-x: hidden;
     transition: background-color 0.2s ease, color 0.2s ease;
   }
+}
+
+/* ==========================================================================
+   Universal Light & Night Mode Color Rules
+   Light Mode = Solid Black / Ink Typography on Archival Ivory
+   Night Mode = Pure White & Light Slate Typography on Dark Charcoal
+   ========================================================================== */
+
+/* 1. Light Mode Defaults (Black Text) */
+:root:not(.dark) h1,
+:root:not(.dark) h2,
+:root:not(.dark) h3,
+:root:not(.dark) h4,
+:root:not(.dark) h5,
+:root:not(.dark) h6,
+:root:not(.dark) strong,
+:root:not(.dark) b {
+  color: #171714;
+}
+
+:root:not(.dark) [class*="text-[#171714]"],
+:root:not(.dark) .text-paper-ink {
+  color: #171714;
+}
+
+/* 2. Night Mode Enforcement (White Text & Dark Cards) */
+.dark body,
+.dark main {
+  background-color: #08090C !important;
+  color: #FFFFFF !important;
+}
+
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6,
+.dark strong,
+.dark b {
+  color: #FFFFFF !important;
+}
+
+/* Force elements with light-mode text classes to white in night mode */
+.dark [class*="text-[#171714]"],
+.dark .text-paper-ink {
+  color: #FFFFFF !important;
+}
+
+.dark [class*="text-[#68655B]"],
+.dark .text-paper-graphite {
+  color: #CBD5E1 !important;
+}
+
+.dark [class*="text-[#8C887B]"],
+.dark [class*="text-[#55524A]"],
+.dark .text-paper-muted {
+  color: #94A3B8 !important;
+}
+
+/* Force cards and surface panels to dark charcoal in night mode */
+.dark [class*="bg-[#FFFDF5]"],
+.dark .bg-paper-surface,
+.dark .bg-paper-card {
+  background-color: #0F1218 !important;
+}
+
+.dark [class*="bg-[#F7F3E8]"],
+.dark .bg-paper-bg {
+  background-color: #08090C !important;
+}
+
+.dark [class*="bg-[#F1EBD8]"],
+.dark .bg-paper-panel {
+  background-color: #161B26 !important;
+}
+
+.dark [class*="bg-[#EAE3CE]"],
+.dark [class*="bg-[#EAE3CE]/50"] {
+  background-color: #1A202C !important;
+}
+
+/* Force light borders to subtle dark borders in night mode */
+.dark [class*="border-[#E4DBC8]"],
+.dark .border-paper-border {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark [class*="border-[#D8CEB9]"],
+.dark .border-paper-borderDark {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* Inputs, textareas, search bars in night mode */
+.dark input,
+.dark textarea,
+.dark select {
+  color: #FFFFFF !important;
+  background-color: #161B26 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #94A3B8 !important;
 }
 
 /* Custom Sleek Archival Scrollbar */
