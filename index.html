@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberOsint — Cybersecurity OSINT Intelligence Platform</title>
+
+  <!-- Primary SEO Meta Tags -->
+  <meta name="title" content="CyberOsint — Cybersecurity OSINT Intelligence Platform">
+  <meta name="description" content="A sovereign cybersecurity OSINT intelligence platform that ingests, normalizes, classifies, searches, and correlates threat intelligence from authoritative global feeds into an interactive knowledge graph and hybrid RRF search engine.">
+  <meta name="keywords" content="cybersecurity, OSINT, threat intelligence, CVE, vulnerability, hybrid search, RRF, reciprocal rank fusion, knowledge graph, open-source intelligence, FastAPI, Next.js, PostgreSQL">
+  <meta name="author" content="Suraj541">
+  <meta name="theme-color" content="#07080b">
+
+  <!-- Open Graph / Facebook / LinkedIn -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://suraj541.github.io/CyberOsint/">
+  <meta property="og:title" content="CyberOsint — Cybersecurity OSINT Intelligence Platform">
+  <meta property="og:description" content="Collect. Normalize. Search. Investigate. Open-source cybersecurity intelligence platform with hybrid RRF search and entity knowledge graph.">
+  <meta property="og:site_name" content="CyberOsint">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://suraj541.github.io/CyberOsint/">
+  <meta property="twitter:title" content="CyberOsint — Cybersecurity OSINT Intelligence Platform">
+  <meta property="twitter:description" content="Collect. Normalize. Search. Investigate. Open-source cybersecurity intelligence platform with hybrid RRF search and entity knowledge graph.">
+
+  <!-- Favicon (Inline SVG Shield) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e5a93b'%3E%3Cpath d='M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm0 2.18l7 3.89v4.93c0 4.54-3.14 8.78-7 9.87-3.86-1.09-7-5.33-7-9.87V8.07l7-3.89zM11 7h2v6h-2V7zm0 8h2v2h-2v-2z'/%3E%3C/svg%3E">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "CyberOsint",
+    "applicationCategory": "SecurityApplication",
+    "operatingSystem": "Linux, macOS, Windows",
+    "description": "Cybersecurity OSINT intelligence platform for collecting, processing, searching, and exploring cybersecurity intelligence from multiple sources.",
+    "url": "https://github.com/Suraj541/CyberOsint",
+    "license": "https://github.com/Suraj541/CyberOsint/blob/main/LICENSE",
+    "author": {
+      "@type": "Person",
+      "name": "Suraj541",
+      "url": "https://github.com/Suraj541"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- ========================================================================
+       Header & Navigation Bar
+       ======================================================================== -->
+  <header class="site-header">
+    <div class="container nav-wrapper">
+      <a href="#" class="brand-logo" aria-label="CyberOsint Home">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 9v6"></path>
+          <path d="M9 12h6"></path>
+        </svg>
+        <span>Cyber<span style="color: var(--accent-amber);">Osint</span></span>
+        <span class="brand-badge">OSINT v2.4</span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="#overview" class="nav-link">Overview</a></li>
+          <li><a href="#why-cyberosint" class="nav-link">Why CyberOsint</a></li>
+          <li><a href="#features" class="nav-link">Features</a></li>
+          <li><a href="#architecture" class="nav-link">Architecture</a></li>
+          <li><a href="#search-engine" class="nav-link">Hybrid Search</a></li>
+          <li><a href="#knowledge-graph" class="nav-link">Knowledge Graph</a></li>
+          <li><a href="#quickstart" class="nav-link">Quickstart</a></li>
+          <li><a href="#tech-stack" class="nav-link">Tech Stack</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="https://github.com/Suraj541/CyberOsint" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" id="nav-github-btn">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          <span>View on GitHub</span>
+        </a>
+        <button class="mobile-toggle" aria-label="Toggle navigation menu">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       Hero Section
+       ======================================================================== -->
+  <section class="hero-section" id="hero">
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <div class="hero-status-tag">
+          <span class="status-pulse"></span>
+          <span>Sovereign OSINT Workstation • Production Verified</span>
+        </div>
+
+        <h1 class="hero-title">
+          <span class="title-accent">CYBEROSINT</span>
+          <span class="title-main">Cybersecurity OSINT Intelligence Platform</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          <strong>Collect. Normalize. Search. Investigate.</strong><br>
+          An autonomous platform engineered to continuously ingest global vulnerability databases, vendor advisories, and threat research into an interactive knowledge graph and hybrid RRF search engine.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#overview" class="btn btn-primary">
+            <span>Explore Platform</span>
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </a>
+          <a href="https://github.com/Suraj541/CyberOsint" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+            <span>View on GitHub</span>
+          </a>
+        </div>
+
+        <div class="hero-telemetry-strip">
+          <div class="telemetry-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            <span>FastAPI Backend</span>
+          </div>
+          <div class="telemetry-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            <span>Next.js 14 UI</span>
+          </div>
+          <div class="telemetry-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+            <span>PostgreSQL 16</span>
+          </div>
+          <div class="telemetry-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <span>Hybrid RRF (k=60)</span>
+          </div>
+          <div class="telemetry-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>SSRF Guardrails</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hero Visual Console -->
+      <div class="hero-visual">
+        <div class="terminal-window">
+          <div class="terminal-header">
+            <div class="terminal-controls">
+              <span class="term-btn term-red"></span>
+              <span class="term-btn term-yellow"></span>
+              <span class="term-btn term-green"></span>
+            </div>
+            <span class="terminal-title">CYBEROSINT // INGRESS TELEMETRY</span>
+            <span class="terminal-live-badge">PIPELINE LIVE</span>
+          </div>
+          <div class="terminal-body">
+            <div class="flow-diagram-mini">
+              <div class="pipeline-row">
+                <div class="pipeline-badge"><span style="color: var(--accent-rose);">●</span> CISA KEV</div>
+                <div class="pipeline-badge"><span style="color: var(--accent-cyan);">●</span> MSRC CSAF</div>
+                <div class="pipeline-badge"><span style="color: var(--accent-amber);">●</span> GHSA Advisories</div>
+              </div>
+              <div class="pipeline-connector-line">▼ &nbsp; SSRF FILTER &amp; ASYNC CONNECTOR POOL &nbsp; ▼</div>
+              <div class="pipeline-row">
+                <div class="pipeline-badge highlight">SHA-256 Deduplication</div>
+                <div class="pipeline-badge highlight">Entity Extraction (NER)</div>
+              </div>
+              <div class="pipeline-connector-line">▼ &nbsp; UNIFIED POSTGRESQL 16 PERSISTENCE &nbsp; ▼</div>
+              <div class="pipeline-row">
+                <div class="pipeline-badge">OpenSearch BM25</div>
+                <div class="pipeline-badge" style="background: rgba(16, 185, 129, 0.08); border-color: var(--accent-emerald); color: var(--accent-emerald);">RRF Fusion (k=60)</div>
+                <div class="pipeline-badge">384-D Vectors</div>
+              </div>
+            </div>
+
+            <!-- Event Feed Stream -->
+            <div class="intel-event-feed">
+              <div class="intel-event-item">
+                <span class="intel-tag-cve">CVE-2024-38812</span>
+                <span>VMware vCenter RCE Buffer Overflow</span>
+                <span style="color: var(--text-muted);">9.8 CRIT</span>
+              </div>
+              <div class="intel-event-item">
+                <span class="intel-tag-kev">CISA KEV</span>
+                <span>Palo Alto PAN-OS Command Injection</span>
+                <span style="color: var(--accent-amber);">EXPLOITED</span>
+              </div>
+              <div class="intel-event-item">
+                <span class="intel-tag-cert">PROJECT ZERO</span>
+                <span>Arm Mali GPU Kernel Driver Use-After-Free</span>
+                <span style="color: var(--text-muted);">RESEARCH</span>
+              </div>
+              <div class="intel-event-item">
+                <span class="intel-tag-rrf">RRF SEARCH</span>
+                <span>Fused Rank Evaluated across 2 Index Models</span>
+                <span style="color: var(--accent-emerald);">12ms</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Section: What is CyberOsint & 7-Stage Lifecycle
+       ======================================================================== -->
+  <section class="section" id="overview">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Core Concept</span>
+        <h2 class="section-title">What is <span class="highlight">CyberOsint?</span></h2>
+        <p class="section-desc">
+          CyberOsint is a cybersecurity intelligence platform that continuously collects data from multiple sources, organizes and normalizes it, and provides powerful tools to search, correlate, and investigate threat intelligence in a single interface.
+        </p>
+      </div>
+
+      <div class="lifecycle-grid">
+        <div class="lifecycle-step">
+          <span class="lifecycle-num">01 // INGRESS</span>
+          <div class="lifecycle-name">Sources</div>
+          <div class="lifecycle-desc">Government CERTs, vulnerability registries, advisories, research blogs, and threat telemetry.</div>
+        </div>
+
+        <div class="lifecycle-step">
+          <span class="lifecycle-num">02 // COLLECT</span>
+          <div class="lifecycle-name">Connectors</div>
+          <div class="lifecycle-desc">Scheduled, rate-limited, and SSRF-protected autonomous collectors polling feeds.</div>
+        </div>
+
+        <div class="lifecycle-step">
+          <span class="lifecycle-num">03 // PROCESS</span>
+          <div class="lifecycle-name">Normalize</div>
+          <div class="lifecycle-desc">Converts raw JSON, XML, and Atom payloads into uniform CyberOSINT schemas and deduplicates via SHA-256.</div>
+        </div>
+
+        <div class="lifecycle-step">
+          <span class="lifecycle-num">04 // ENRICH</span>
+          <div class="lifecycle-name">Classify</div>
+          <div class="lifecycle-desc">Categorizes content into CVE, Advisory, Threat Intel, or Research, evaluating CVSS metrics.</div>
+        </div>
+
+        <div class="lifecycle-step">
+          <span class="lifecycle-num">05 // GRAPH</span>
+          <div class="lifecycle-name">Connect</div>
+          <div class="lifecycle-desc">Extracts named entities (Vendors, Products, Malware, CVEs) and maps relational graph links.</div>
+        </div>
+
+        <div class="lifecycle-step">
+          <span class="lifecycle-num">06 // RETRIEVAL</span>
+          <div class="lifecycle-name">Search</div>
+          <div class="lifecycle-desc">Simultaneously executes full-text BM25 and dense vector search, fused by Reciprocal Rank Fusion (k=60).</div>
+        </div>
+
+        <div class="lifecycle-step">
+          <span class="lifecycle-num">07 // ANALYSIS</span>
+          <div class="lifecycle-name">Investigate</div>
+          <div class="lifecycle-desc">Analysts explore dossiers, view timelines, filter KEV exploits, and query cross-referenced intelligence.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Section: Why CyberOsint? (Problem & Solution)
+       ======================================================================== -->
+  <section class="section" id="why-cyberosint" style="background: rgba(13, 15, 20, 0.4);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">The Problem</span>
+        <h2 class="section-title">Why Was <span class="highlight">CyberOsint</span> Created?</h2>
+        <p class="section-desc">
+          Cybersecurity information is scattered across dozens of disconnected silos, making timely threat detection and correlation difficult for security teams.
+        </p>
+      </div>
+
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="why-card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+          </div>
+          <h3>Fragmented Information Silos</h3>
+          <p>Security teams waste valuable time manually checking CISA alerts, vendor portals, GitHub advisories, and security blogs one by one without a single unified view.</p>
+        </div>
+
+        <div class="why-card">
+          <div class="why-card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          </div>
+          <h3>Alert Fatigue &amp; Duplicates</h3>
+          <p>The same breaking vulnerability is reported across multiple news outlets and advisories with varying titles, cluttering threat feeds with duplicate noise.</p>
+        </div>
+
+        <div class="why-card">
+          <div class="why-card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+          </div>
+          <h3>Disconnected Relationships</h3>
+          <p>A CVE alone does not tell the full story. Understanding which vendor, products, threat actors, and active ransomware campaigns are linked requires relational entity mapping.</p>
+        </div>
+
+        <div class="why-card">
+          <div class="why-card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </div>
+          <h3>Keyword Search Blindspots</h3>
+          <p>Traditional search engines miss critical intelligence when queries use synonyms (e.g., searching for "credential theft" misses reports using "infostealer dump" without vector search).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Section: Key Features Grid
+       ======================================================================== -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Platform Capabilities</span>
+        <h2 class="section-title">Engineered for <span class="highlight">Intelligence Analysts</span></h2>
+        <p class="section-desc">
+          Every feature documented below is implemented directly in the CyberOsint repository. No fake features, no simulated capabilities.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <!-- Feature 1 -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg>
+            </div>
+            <h3 class="feature-title">Autonomous Connectors</h3>
+          </div>
+          <p class="feature-desc">Ingests structured threat intelligence from 10+ authoritative sources with asynchronous request workers, exponential backoff, and robots.txt compliance.</p>
+          <div class="feature-pill-list">
+            <span class="feature-pill">CISA KEV</span>
+            <span class="feature-pill">NVD</span>
+            <span class="feature-pill">MSRC</span>
+            <span class="feature-pill">GHSA</span>
+            <span class="feature-pill">Project Zero</span>
+            <span class="feature-pill">Abuse.ch</span>
+          </div>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+            <h3 class="feature-title">Vulnerability &amp; KEV Tracker</h3>
+          </div>
+          <p class="feature-desc">Automated CVE normalization, CVSS v3.1 impact ratings, CWE categorization, and active in-the-wild exploitation surveillance filters.</p>
+          <div class="feature-pill-list">
+            <span class="feature-pill">CVSS v3.1</span>
+            <span class="feature-pill">Known Exploited (KEV)</span>
+            <span class="feature-pill">CWE Taxonomies</span>
+            <span class="feature-pill">Ransomware Flags</span>
+          </div>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+            <h3 class="feature-title">Hybrid Search Engine</h3>
+          </div>
+          <p class="feature-desc">Dual retrieval pipeline combining OpenSearch BM25 keyword matching with 384-dimensional dense vector embeddings for semantic query understanding.</p>
+          <div class="feature-pill-list">
+            <span class="feature-pill">BM25 Text Search</span>
+            <span class="feature-pill">384-D Vectors</span>
+            <span class="feature-pill">MiniLM-L6-v2</span>
+            <span class="feature-pill">Memory Fallback</span>
+          </div>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            </div>
+            <h3 class="feature-title">Reciprocal Rank Fusion (RRF)</h3>
+          </div>
+          <p class="feature-desc">Industry-standard ranking algorithm (k=60) combining keyword relevance and semantic similarity into a single, balanced result set without score distortion.</p>
+          <div class="feature-pill-list">
+            <span class="feature-pill">RRF (k=60)</span>
+            <span class="feature-pill">Rank Fusion</span>
+            <span class="feature-pill">Score Diagnostics</span>
+            <span class="feature-pill">Real-time Telemetry</span>
+          </div>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+            </div>
+            <h3 class="feature-title">Entity Knowledge Graph</h3>
+          </div>
+          <p class="feature-desc">Extracts and resolves Vendors, Technologies, CVEs, Malware Families, and Threat Actors, mapping co-occurrence relationships and subgraphs.</p>
+          <div class="feature-pill-list">
+            <span class="feature-pill">Entity Resolution</span>
+            <span class="feature-pill">Multi-hop Graphs</span>
+            <span class="feature-pill">Dossier Views</span>
+            <span class="feature-pill">Threat Links</span>
+          </div>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+            </div>
+            <h3 class="feature-title">Curated OSINT Toolkit</h3>
+          </div>
+          <p class="feature-desc">Directory of 10 verified OSINT tools spanning Infrastructure, Network Scanning, Social Footprinting, and Document Metadata extraction.</p>
+          <div class="feature-pill-list">
+            <span class="feature-pill">Shodan</span>
+            <span class="feature-pill">theHarvester</span>
+            <span class="feature-pill">Sherlock</span>
+            <span class="feature-pill">Censys</span>
+            <span class="feature-pill">DNSDumpster</span>
+            <span class="feature-pill">FOCA</span>
+          </div>
+        </div>
+
+        <!-- Feature 7 -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <h3 class="feature-title">Sovereign Security &amp; SSRF</h3>
+          </div>
+          <p class="feature-desc">Egress network filter actively blocking loopback (127.0.0.1), private subnets (RFC 1918), and cloud metadata services. Token-bucket rate limiting safeguards.</p>
+          <div class="feature-pill-list">
+            <span class="feature-pill">RFC 1918 Egress Block</span>
+            <span class="feature-pill">Cloud Metadata Shield</span>
+            <span class="feature-pill">Token-Bucket Limiter</span>
+            <span class="feature-pill">Secret Manager Vault</span>
+          </div>
+        </div>
+
+        <!-- Feature 8 -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            </div>
+            <h3 class="feature-title">Analyst Intelligence Console</h3>
+          </div>
+          <p class="feature-desc">Built with Next.js 14, featuring a refined charcoal base, warm ivory accents, responsive layouts, and zero external tracking.</p>
+          <div class="feature-pill-list">
+            <span class="feature-pill">Next.js 14 App Router</span>
+            <span class="feature-pill">TypeScript Strict</span>
+            <span class="feature-pill">Tailwind CSS</span>
+            <span class="feature-pill">Zero Tracking</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Section: How It Works — Interactive Architecture Pipeline
+       ======================================================================== -->
+  <section class="section" id="architecture">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">System Architecture</span>
+        <h2 class="section-title">How CyberOsint <span class="highlight">Operates</span></h2>
+        <p class="section-desc">
+          Click on any stage in the ingestion and search pipeline to inspect its exact technical implementation, schemas, and algorithms.
+        </p>
+      </div>
+
+      <div class="arch-interactive-wrapper">
+        <div class="arch-canvas-container">
+          <!-- Stage Selection Nav -->
+          <div class="arch-pipeline-nav" role="tablist">
+            <button class="arch-node-btn" data-stage="sources" role="tab"><span class="node-dot"></span>01 Sources</button>
+            <button class="arch-node-btn" data-stage="connectors" role="tab"><span class="node-dot"></span>02 Connectors</button>
+            <button class="arch-node-btn" data-stage="normalization" role="tab"><span class="node-dot"></span>03 Normalizer</button>
+            <button class="arch-node-btn" data-stage="classification" role="tab"><span class="node-dot"></span>04 Taxonomy &amp; NER</button>
+            <button class="arch-node-btn" data-stage="database" role="tab"><span class="node-dot"></span>05 PostgreSQL</button>
+            <button class="arch-node-btn active" data-stage="search" role="tab"><span class="node-dot"></span>06 Hybrid Search</button>
+            <button class="arch-node-btn" data-stage="api" role="tab"><span class="node-dot"></span>07 FastAPI &amp; UI</button>
+          </div>
+
+          <!-- Dynamic Inspector Card -->
+          <div class="arch-inspector-card" id="arch-inspector-card">
+            <div class="inspector-info">
+              <div class="inspector-stage-tag" id="arch-stage-tag">Stage 06 • Retrieval Engine</div>
+              <h3 class="inspector-title" id="arch-stage-title">Hybrid Search &amp; Reciprocal Rank Fusion (RRF)</h3>
+              <p class="inspector-desc" id="arch-stage-desc">Simultaneously queries OpenSearch BM25 text indexes and 384-dimensional dense vector embeddings, fusing the rank distributions using RRF (k=60) for optimal relevance.</p>
+            </div>
+            <div class="inspector-specs" id="arch-stage-specs">
+              <div class="spec-row">
+                <span class="spec-label">Text Search</span>
+                <span class="spec-val">OpenSearch BM25 Inverted Index</span>
+              </div>
+              <div class="spec-row">
+                <span class="spec-label">Vector Search</span>
+                <span class="spec-val">384-D Embeddings (all-MiniLM-L6-v2)</span>
+              </div>
+              <div class="spec-row">
+                <span class="spec-label">Fusion Formula</span>
+                <span class="spec-val">RRF(d) = Σ [ 1 / (60 + rank_i(d)) ]</span>
+              </div>
+              <div class="spec-row">
+                <span class="spec-label">Resilience</span>
+                <span class="spec-val">In-Memory Cosine Fallback Engine</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Section: Hybrid Search Explained & Interactive Demo
+       ======================================================================== -->
+  <section class="section" id="search-engine" style="background: rgba(13, 15, 20, 0.4);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Search Technology</span>
+        <h2 class="section-title">Hybrid Search <span class="highlight">Explained Simply</span></h2>
+        <p class="section-desc">
+          Why choose between keyword search and AI vector search when you can fuse both? CyberOsint uses Reciprocal Rank Fusion (RRF) to deliver balanced, highly relevant results.
+        </p>
+      </div>
+
+      <!-- Conceptual Explanation Grid -->
+      <div class="why-grid" style="margin-bottom: 3rem;">
+        <div class="why-card">
+          <div class="why-card-icon" style="color: var(--accent-cyan); border-color: rgba(56, 189, 248, 0.3); background: rgba(56, 189, 248, 0.1);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
+          </div>
+          <h3>1. Text Search (BM25)</h3>
+          <p>Finds exact keyword matches, specific CVE identifiers (e.g. <code>CVE-2024-38812</code>), product names, and specific error codes with high lexical precision.</p>
+        </div>
+
+        <div class="why-card">
+          <div class="why-card-icon" style="color: var(--accent-purple); border-color: rgba(168, 85, 247, 0.3); background: rgba(168, 85, 247, 0.1);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+          </div>
+          <h3>2. Vector Search (384-D)</h3>
+          <p>Understands concepts and semantic meaning. Searching for <em>"credential dump"</em> will return records about <em>"infostealers"</em> and <em>"stealing passwords"</em> even without matching words.</p>
+        </div>
+
+        <div class="why-card">
+          <div class="why-card-icon" style="color: var(--accent-emerald); border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </div>
+          <h3>3. RRF Rank Fusion (k=60)</h3>
+          <p>Takes the rank order from both searches and calculates a unified score. The highest-ranked items in both methods float directly to the top without score scale bias.</p>
+        </div>
+      </div>
+
+      <!-- Interactive Search Simulator -->
+      <div class="search-demo-container">
+        <div class="search-demo-header">
+          <div>
+            <span class="section-tag" style="margin-bottom: 0.5rem;">Interactive Showcase</span>
+            <h3 style="color: var(--text-ivory);">Test the Hybrid Retrieval Simulator</h3>
+          </div>
+          <div class="search-metrics-bar">
+            <span>Query Time: <strong id="demo-query-duration" style="color: var(--accent-emerald);">8ms</strong></span>
+            <span>Matches: <strong id="demo-result-count" style="color: var(--text-ivory);">6</strong></span>
+            <span>Status: <strong style="color: var(--accent-amber);">Client-Side Simulation</strong></span>
+          </div>
+        </div>
+
+        <div class="search-mock-input-wrap">
+          <svg class="search-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" class="search-mock-input" id="demo-search-input" value="ransomware" placeholder="Try typing: ransomware, cve-2024, zero-day, phishing...">
+        </div>
+
+        <div class="search-chips-row">
+          <span class="search-chip-label">Quick Queries:</span>
+          <button class="search-chip" data-query="ransomware">ransomware</button>
+          <button class="search-chip" data-query="cve-2024-38812">cve-2024-38812</button>
+          <button class="search-chip" data-query="zero-day">zero-day</button>
+          <button class="search-chip" data-query="phishing">phishing</button>
+          <button class="search-chip" data-query="lockbit">lockbit</button>
+        </div>
+
+        <div class="rrf-formula-box">
+          <div class="rrf-math">RRF Formula: Score(d) = 1 / (60 + rank<sub>text</sub>) + 1 / (60 + rank<sub>vector</sub>)</div>
+          <div class="rrf-badge">Rank Constant: k = 60</div>
+        </div>
+
+        <!-- Simulated Results -->
+        <div class="demo-results-grid" id="demo-results-container">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Section: Knowledge Graph Explorer
+       ======================================================================== -->
+  <section class="section" id="knowledge-graph">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Relationship Intelligence</span>
+        <h2 class="section-title">Explore the <span class="highlight">Knowledge Graph</span></h2>
+        <p class="section-desc">
+          Instead of viewing isolated CVEs, CyberOsint maps multi-hop relationships across Vulnerabilities, Vendors, Products, Weaknesses, and Threat Actors. Click on any node below to inspect its entity dossier.
+        </p>
+      </div>
+
+      <div class="graph-explorer-box">
+        <!-- Interactive SVG Graph Visual -->
+        <div class="graph-svg-container">
+          <svg class="graph-svg" viewBox="0 0 600 350">
+            <!-- Connection Lines -->
+            <line x1="300" y1="175" x2="140" y2="80" stroke="rgba(212, 175, 55, 0.3)" stroke-width="2" stroke-dasharray="4" />
+            <line x1="300" y1="175" x2="460" y2="80" stroke="rgba(212, 175, 55, 0.3)" stroke-width="2" stroke-dasharray="4" />
+            <line x1="300" y1="175" x2="140" y2="270" stroke="rgba(212, 175, 55, 0.3)" stroke-width="2" stroke-dasharray="4" />
+            <line x1="300" y1="175" x2="460" y2="270" stroke="rgba(212, 175, 55, 0.3)" stroke-width="2" stroke-dasharray="4" />
+            <line x1="140" y1="80" x2="460" y2="80" stroke="rgba(255, 255, 255, 0.1)" stroke-width="1" />
+
+            <!-- Center Node: CVE-2024-38812 -->
+            <g class="graph-node active" data-node="cve" transform="translate(300, 175)">
+              <circle r="34" fill="#161a24" stroke="#e5a93b" stroke-width="3" />
+              <text text-anchor="middle" y="4" fill="#f5eedc" font-size="10" font-family="monospace" font-weight="bold">CVE-2024</text>
+              <text text-anchor="middle" y="16" fill="#e5a93b" font-size="9" font-family="monospace">38812</text>
+            </g>
+
+            <!-- Node: VMware Product -->
+            <g class="graph-node" data-node="product" transform="translate(140, 80)">
+              <circle r="28" fill="#131720" stroke="#38bdf8" stroke-width="2" />
+              <text text-anchor="middle" y="4" fill="#f8fafc" font-size="9" font-family="sans-serif">vCenter</text>
+            </g>
+
+            <!-- Node: Broadcom Vendor -->
+            <g class="graph-node" data-node="vendor" transform="translate(460, 80)">
+              <circle r="28" fill="#131720" stroke="#a855f7" stroke-width="2" />
+              <text text-anchor="middle" y="4" fill="#f8fafc" font-size="9" font-family="sans-serif">Broadcom</text>
+            </g>
+
+            <!-- Node: Threat Actor -->
+            <g class="graph-node" data-node="threat" transform="translate(140, 270)">
+              <circle r="28" fill="#131720" stroke="#f43f5e" stroke-width="2" />
+              <text text-anchor="middle" y="4" fill="#f8fafc" font-size="9" font-family="sans-serif">Ransomware</text>
+            </g>
+
+            <!-- Node: Weakness CWE -->
+            <g class="graph-node" data-node="weakness" transform="translate(460, 270)">
+              <circle r="28" fill="#131720" stroke="#10b981" stroke-width="2" />
+              <text text-anchor="middle" y="4" fill="#f8fafc" font-size="9" font-family="sans-serif">CWE-119</text>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Entity Details Panel -->
+        <div class="graph-details-panel">
+          <div class="graph-details-header">
+            <span class="entity-type-badge" id="graph-entity-type">Vulnerability</span>
+            <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-emerald);">● Resolved Entity</span>
+          </div>
+          <h3 class="entity-name" id="graph-entity-name">CVE-2024-38812</h3>
+          <p class="entity-desc" id="graph-entity-desc">Critical DCE/RPC heap-based buffer overflow vulnerability in VMware vCenter Server with CVSS v3.1 Base Score 9.8 (Critical).</p>
+          <div class="entity-meta-list" id="graph-entity-meta">
+            <div class="spec-row">
+              <span class="spec-label">CVSS v3.1</span>
+              <span class="spec-val">9.8 (Critical)</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-label">CWE Weakness</span>
+              <span class="spec-val">CWE-119</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-label">Status</span>
+              <span class="spec-val">CISA KEV Added</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-label">Discovered By</span>
+              <span class="spec-val">Matrix Lab</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Section: How to Run / Quickstart
+       ======================================================================== -->
+  <section class="section" id="quickstart">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Getting Started</span>
+        <h2 class="section-title">Run CyberOsint <span class="highlight">Locally</span></h2>
+        <p class="section-desc">
+          Clear, reproducible setup instructions for running the complete sovereign platform on your workstation.
+        </p>
+      </div>
+
+      <div class="quickstart-tabs">
+        <button class="tab-btn active" data-tab="local">01 Local Development</button>
+        <button class="tab-btn" data-tab="docker">02 Docker Compose</button>
+        <button class="tab-btn" data-tab="testing">03 Verification &amp; Tests</button>
+      </div>
+
+      <!-- Tab 1: Local Setup -->
+      <div class="tab-content active" id="tab-local">
+        <div class="terminal-block">
+          <div class="terminal-bar">
+            <span class="terminal-label">BASH // LOCAL SETUP &amp; RUN</span>
+            <button class="copy-btn" data-target="code-local">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <pre class="terminal-code" id="code-local"><code><span class="code-comment"># 1. Clone the repository</span>
+<span class="code-cmd">git clone</span> <span class="code-arg">https://github.com/Suraj541/CyberOsint.git</span>
+<span class="code-cmd">cd</span> CyberOsint
+
+<span class="code-comment"># 2. Configure environment template</span>
+<span class="code-cmd">cp</span> .env.example .env
+
+<span class="code-comment"># 3. Setup Python virtual environment &amp; backend</span>
+<span class="code-cmd">python</span> -m venv .venv
+<span class="code-comment"># Windows: .venv\Scripts\activate | Linux: source .venv/bin/activate</span>
+<span class="code-cmd">pip install</span> -r apps/api/requirements.txt
+
+<span class="code-comment"># 4. Start the FastAPI backend server (Port 8000)</span>
+<span class="code-cmd">uvicorn</span> app.main:app <span class="code-arg">--app-dir apps/api --host 127.0.0.1 --port 8000 --reload</span>
+
+<span class="code-comment"># 5. In a second terminal, start the Next.js 14 frontend (Port 3000)</span>
+<span class="code-cmd">cd</span> apps/web
+<span class="code-cmd">npm install</span>
+<span class="code-cmd">npm run dev</span>
+
+<span class="code-comment"># Dashboard: http://localhost:3000 | API Docs: http://127.0.0.1:8000/docs</span></code></pre>
+        </div>
+      </div>
+
+      <!-- Tab 2: Docker Compose -->
+      <div class="tab-content" id="tab-docker">
+        <div class="terminal-block">
+          <div class="terminal-bar">
+            <span class="terminal-label">DOCKER // COMPOSE STACK</span>
+            <button class="copy-btn" data-target="code-docker">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <pre class="terminal-code" id="code-docker"><code><span class="code-comment"># 1. Clone repository &amp; copy environment configuration</span>
+<span class="code-cmd">git clone</span> <span class="code-arg">https://github.com/Suraj541/CyberOsint.git</span>
+<span class="code-cmd">cd</span> CyberOsint
+<span class="code-cmd">cp</span> .env.example .env
+
+<span class="code-comment"># 2. Launch complete stack (PostgreSQL, Redis, OpenSearch, API, Web)</span>
+<span class="code-cmd">docker compose</span> <span class="code-arg">up -d</span>
+
+<span class="code-comment"># 3. Check service health status</span>
+<span class="code-cmd">docker compose</span> <span class="code-arg">ps</span>
+
+<span class="code-comment"># 4. View live ingestion logs</span>
+<span class="code-cmd">docker compose</span> <span class="code-arg">logs -f api</span></code></pre>
+        </div>
+      </div>
+
+      <!-- Tab 3: Testing -->
+      <div class="tab-content" id="tab-testing">
+        <div class="terminal-block">
+          <div class="terminal-bar">
+            <span class="terminal-label">BASH // TEST SUITES</span>
+            <button class="copy-btn" data-target="code-testing">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <pre class="terminal-code" id="code-testing"><code><span class="code-comment"># 1. Run all backend pytest suites</span>
+<span class="code-cmd">pytest</span> <span class="code-arg">tests/ -v</span>
+
+<span class="code-comment"># 2. Run hybrid RRF search unit verification</span>
+<span class="code-cmd">pytest</span> <span class="code-arg">apps/api/tests/test_rrf_comprehensive.py -v</span>
+
+<span class="code-comment"># 3. Verify frontend TypeScript types and production build</span>
+<span class="code-cmd">cd</span> apps/web
+<span class="code-cmd">npx tsc</span> <span class="code-arg">--noEmit</span>
+<span class="code-cmd">npm run build</span></code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Section: Verified Technology Stack
+       ======================================================================== -->
+  <section class="section" id="tech-stack" style="background: rgba(13, 15, 20, 0.4);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Stack &amp; Architecture</span>
+        <h2 class="section-title">Verified <span class="highlight">Technology Stack</span></h2>
+        <p class="section-desc">
+          Built with production-grade open-source components verified in the codebase.
+        </p>
+      </div>
+
+      <div class="tech-grid">
+        <div class="tech-card">
+          <div class="tech-category">Backend API</div>
+          <div class="tech-name">FastAPI &amp; Python 3.11+</div>
+          <div class="tech-desc">Asynchronous ASGI framework with Pydantic v2 schemas and OpenAPI Swagger documentation.</div>
+        </div>
+
+        <div class="tech-card">
+          <div class="tech-category">Frontend</div>
+          <div class="tech-name">Next.js 14 &amp; React 18</div>
+          <div class="tech-desc">App Router with strict TypeScript, warm amber design system, and Tailwind CSS.</div>
+        </div>
+
+        <div class="tech-card">
+          <div class="tech-category">Database</div>
+          <div class="tech-name">PostgreSQL 16</div>
+          <div class="tech-desc">Relational persistence with SQLAlchemy 2.0 ORM and version-tracked Alembic migrations.</div>
+        </div>
+
+        <div class="tech-card">
+          <div class="tech-category">Search Retrieval</div>
+          <div class="tech-name">OpenSearch BM25 &amp; Vectors</div>
+          <div class="tech-desc">Dual inverted full-text index plus 384-D dense embeddings (sentence-transformers).</div>
+        </div>
+
+        <div class="tech-card">
+          <div class="tech-category">Algorithm</div>
+          <div class="tech-name">Reciprocal Rank Fusion</div>
+          <div class="tech-desc">RRF (k=60) rank aggregation formula combining keyword and semantic relevance.</div>
+        </div>
+
+        <div class="tech-card">
+          <div class="tech-category">Cache &amp; Queue</div>
+          <div class="tech-name">Redis &amp; APScheduler</div>
+          <div class="tech-desc">In-memory caching, token-bucket rate limiting state, and background ingestion jobs.</div>
+        </div>
+
+        <div class="tech-card">
+          <div class="tech-category">Network Defense</div>
+          <div class="tech-name">SSRF Validation Guard</div>
+          <div class="tech-desc">Kernel-level socket checks blocking RFC 1918 private subnets and AWS/GCP metadata.</div>
+        </div>
+
+        <div class="tech-card">
+          <div class="tech-category">Deployment</div>
+          <div class="tech-name">Docker &amp; Compose</div>
+          <div class="tech-desc">Multi-container orchestration for PostgreSQL, Redis, OpenSearch, API, and Web.</div>
+        </div>
+      </div>
+
+      <!-- Real Repository Tree View -->
+      <div class="tree-box">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+          <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-amber);">REPOSITORY STRUCTURE (CyberOsint)</span>
+          <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted);">main branch</span>
+        </div>
+        <pre class="tree-code"><code>CyberOsint/
+├── <span class="tree-folder">apps/</span>
+│   ├── <span class="tree-folder">api/</span>               <span class="tree-desc"># FastAPI backend application, Alembic migrations, schemas &amp; workers</span>
+│   │   ├── <span class="tree-folder">alembic/</span>       <span class="tree-desc"># Database version migration scripts</span>
+│   │   └── <span class="tree-folder">app/</span>           <span class="tree-desc"># API routes, models, schemas, and background scheduler</span>
+│   └── <span class="tree-folder">web/</span>               <span class="tree-desc"># Next.js 14 OSINT analyst console &amp; UI components</span>
+├── <span class="tree-folder">connectors/</span>            <span class="tree-desc"># CISA, NVD, MSRC, GHSA, Project Zero &amp; Abuse.ch feeds</span>
+├── <span class="tree-folder">services/</span>              <span class="tree-desc"># Ingestion, deduplication, search indexer, SSRF security</span>
+├── <span class="tree-folder">tests/</span>                 <span class="tree-desc"># Comprehensive pytest suites for API, search, security</span>
+├── <span class="tree-folder">docs/</span>                  <span class="tree-desc"># GitHub Pages documentation &amp; showcase landing page</span>
+├── <span class="tree-folder">docker-compose.yml</span>     <span class="tree-desc"># Multi-container orchestration specification</span>
+├── <span class="tree-folder">.env.example</span>           <span class="tree-desc"># Safe environment variables configuration template</span>
+└── <span class="tree-folder">README.md</span>              <span class="tree-desc"># In-depth architectural documentation</span></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Section: GitHub Call to Action Banner
+       ======================================================================== -->
+  <section class="section">
+    <div class="container">
+      <div class="cta-banner">
+        <h2 class="cta-title">Want to Explore the Source Code?</h2>
+        <p class="cta-subtitle">
+          CyberOsint is open-source and freely available under the Apache-2.0 License. Clone the code, inspect the RRF algorithms, or deploy on your sovereign infrastructure.
+        </p>
+        <div class="cta-actions">
+          <a href="https://github.com/Suraj541/CyberOsint" target="_blank" rel="noopener noreferrer" class="btn btn-primary" id="cta-github-btn">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+            <span>View CyberOsint on GitHub</span>
+          </a>
+          <a href="#quickstart" class="btn btn-secondary">
+            <span>Read Quickstart Guide</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Footer
+       ======================================================================== -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <h4>CyberOsint</h4>
+          <p>A sovereign cybersecurity OSINT intelligence platform built for collection, classification, hybrid search, and relational investigation.</p>
+        </div>
+        <div class="footer-col">
+          <h5>Documentation</h5>
+          <ul class="footer-links">
+            <li><a href="#overview" class="footer-link">Platform Overview</a></li>
+            <li><a href="#architecture" class="footer-link">System Architecture</a></li>
+            <li><a href="#search-engine" class="footer-link">Hybrid Search &amp; RRF</a></li>
+            <li><a href="#knowledge-graph" class="footer-link">Knowledge Graph</a></li>
+            <li><a href="#quickstart" class="footer-link">Quickstart Guide</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Repository</h5>
+          <ul class="footer-links">
+            <li><a href="https://github.com/Suraj541/CyberOsint" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub Repository</a></li>
+            <li><a href="https://github.com/Suraj541/CyberOsint/blob/main/README.md" target="_blank" rel="noopener noreferrer" class="footer-link">README Documentation</a></li>
+            <li><a href="https://github.com/Suraj541/CyberOsint/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="footer-link">Apache 2.0 License</a></li>
+            <li><a href="https://github.com/Suraj541/CyberOsint/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer" class="footer-link">Security Policy</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 CyberOsint Project. Licensed under Apache 2.0.</div>
+        <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">
+          Zero Trackers • Sovereign Intelligence • Client-Side Static Showcase
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-notice" id="toast-notice" role="alert" aria-live="polite">✓ Copied to clipboard</div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
