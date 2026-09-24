@@ -38,7 +38,7 @@ This platform operates exclusively within public OSINT boundaries:
   * *Decentralized Infosec*: Mastodon `infosec.exchange` threat telemetry
   * *Specialized Malware Threat Feeds*: Abuse.ch MalwareBazaar IOCs and family signatures
 * **Reciprocal Rank Fusion (RRF) Hybrid Search**:
-  * Simultaneously evaluates BM25 full-text queries and dense vector embeddings ($k=60$).
+  * Simultaneously evaluates BM25 full-text queries and dense vector embeddings.
   * Real-time engine health telemetry badge (`TEXT ● VECTOR ● RRF ●`).
   * Expandable diagnostics with keyword vs. vector score breakdowns.
 * **Knowledge Graph & Entity Resolution**:
